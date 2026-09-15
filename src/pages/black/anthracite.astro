@@ -7,7 +7,7 @@ import Room from '../../layouts/Room.astro';
     <span class="trail" id="trail" aria-hidden="true"></span>
     <span class="trail trail--ghost" id="ghost" aria-hidden="true"></span>
 
-    <p class="line" id="line">Курсор здесь немного ваш.</p>
+    <p class="line" id="line" data-echo="Курсор здесь немного ваш.">Курсор здесь немного ваш.</p>
 
     <p class="sr-only">Комната, в которой указатель отстаёт от движения мыши и иногда раздваивается.</p>
   </div>
@@ -62,6 +62,57 @@ import Room from '../../layouts/Room.astro';
     /* фраза не стоит ровно: её микросдвиги не совпадают с ритмом ничего вокруг */
     animation: line-unsettle 19s var(--ease-amb) infinite;
     --rest-offset: -9.5s;
+  }
+
+  /*
+    Раздваивается не только курсор: у фразы есть второй, сдвинутый оттиск.
+    Он почти всегда невидим и проступает на доли секунды в моменты, которые не
+    совпадают ни с ритмом самой фразы, ни с заминками курсора.
+  */
+  .line::after {
+    content: attr(data-echo);
+    position: absolute;
+    inset: 0;
+    color: var(--c-black);
+    opacity: 0;
+    pointer-events: none;
+    animation: echo 11.3s var(--ease-amb) infinite;
+    --rest-offset: -5.65s;
+  }
+
+  @keyframes echo {
+    0%,
+    100% {
+      opacity: 0;
+      translate: 0 0;
+    }
+    41% {
+      opacity: 0;
+      translate: 0 0;
+    }
+    43% {
+      opacity: 0.4;
+      translate: 3px -2px;
+    }
+    47% {
+      opacity: 0.12;
+      translate: 5px -1px;
+    }
+    50% {
+      opacity: 0;
+      translate: 0 0;
+    }
+    82% {
+      opacity: 0;
+    }
+    83.5% {
+      opacity: 0.26;
+      translate: -4px 2px;
+    }
+    86% {
+      opacity: 0;
+      translate: 0 0;
+    }
   }
 
   @keyframes line-unsettle {
