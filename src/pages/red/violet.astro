@@ -3,8 +3,13 @@ import Room from '../../layouts/Room.astro';
 ---
 
 <Room branch="red" slug="violet">
-  <div class="stage">
-    <p class="holding">Отсчёт, который ускоряется, если задержаться.</p>
+  <div class="stage" id="stage">
+    <button class="field" type="button" id="field" aria-label="Задержитесь здесь, и отсчёт пойдёт быстрее">
+      <p class="count" id="count">—</p>
+      <p class="hint" id="hint">не задерживайтесь</p>
+    </button>
+
+    <p class="sr-only">Обратный отсчёт, который ускоряется, пока указатель остаётся на странице.</p>
   </div>
 </Room>
 
@@ -15,13 +20,163 @@ import Room from '../../layouts/Room.astro';
     place-items: center;
     padding: 0 var(--pad-x);
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
+
+  .field {
+    appearance: none;
+    background: none;
+    border: 0;
+    margin: 0;
+    padding: clamp(40px, 9vh, 90px) clamp(40px, 9vw, 110px);
+    cursor: default;
+    display: grid;
+    place-items: center;
+    gap: clamp(16px, 2.4vw, 26px);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .count {
+    margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
+    font-weight: 500;
+    font-size: clamp(64px, 16vw, 168px);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in oklab, var(--c-red) 68%, var(--ink) 32%);
+    /* красная грамматика: шаг короткий и с акцентом на выходе */
+    transition:
+      scale 170ms var(--ease-micro),
+      color 240ms var(--ease-state);
+  }
+
+  /* чем быстрее счёт, тем ближе цвет к чистой охре и тем крупнее знак */
+  .stage[data-urgency='1'] .count {
+    color: color-mix(in oklab, var(--c-red) 82%, var(--ink) 18%);
+  }
+  .stage[data-urgency='2'] .count {
+    color: var(--c-red);
+    scale: 1.04;
+  }
+  .stage[data-urgency='3'] .count {
+    color: var(--c-red);
+    scale: 1.08;
+  }
+
+  .count.is-step {
+    animation: step 170ms var(--ease-micro);
+  }
+
+  @keyframes step {
+    0% {
+      scale: 0.94;
+      opacity: 0.5;
+    }
+    70% {
+      scale: 1.03;
+    }
+    100% {
+      scale: 1;
+      opacity: 1;
+    }
+  }
+
+  .hint {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 11.5px;
+    letter-spacing: 0.32em;
     color: var(--ink-dim);
-    opacity: 0.5;
+    opacity: 0.4;
+    transition: opacity 230ms var(--ease-state);
+  }
+
+  .stage[data-urgency='3'] .hint {
+    opacity: 0.75;
+  }
+
+  .field:focus-visible {
+    outline-offset: -14px;
   }
 </style>
+
+<script>
+  import { dwell } from '../../scripts/techniques/dwell.js';
+  import { reduced } from '../../scripts/techniques/_util.js';
+
+  const stage = document.getElementById('stage');
+  const field = document.getElementById('field');
+  const count = document.getElementById('count');
+  const hint = document.getElementById('hint');
+
+  /*
+    Приём удержания наоборот: обычно задержка что-то открывает, здесь она
+    подгоняет. Чем дольше остаёшься, тем короче шаг — до 150 мс, быстрее уже
+    не читается. Уходишь — темп возвращается, но не сразу.
+  */
+  const SLOW = 1000;
+  const FAST = 150;
+
+  let value = 30 + Math.floor(Math.random() * 30);
+  let pace = SLOW;
+  let timer = 0;
+  let held = 0;
+
+  const HINTS = ['не задерживайтесь', 'вы всё ещё здесь', 'быстрее', 'ещё быстрее'];
+
+  const urgency = () => {
+    const t = (SLOW - pace) / (SLOW - FAST);
+    return t > 0.72 ? 3 : t > 0.4 ? 2 : t > 0.12 ? 1 : 0;
+  };
+
+  const render = () => {
+    count.textContent = String(value);
+    count.classList.remove('is-step');
+    void count.offsetWidth;
+    count.classList.add('is-step');
+
+    const u = urgency();
+    stage.dataset.urgency = String(u);
+    hint.textContent = HINTS[u];
+  };
+
+  const schedule = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      value -= 1;
+      if (value <= 0) {
+        // дошло до нуля — ничего не происходит, счёт просто начинается заново
+        value = 30 + Math.floor(Math.random() * 30);
+        pace = SLOW;
+        held = 0;
+      }
+      render();
+      schedule();
+    }, pace);
+  };
+
+  render();
+
+  if (!reduced()) {
+    schedule();
+
+    dwell(field, {
+      hold: 900,
+      onProgress: (p) => {
+        if (p === 0) return;
+        held = Math.min(held + 0.006 + p * 0.004, 1);
+        pace = SLOW - (SLOW - FAST) * held;
+      },
+      onLeave: () => {
+        // возврат к спокойному темпу медленнее, чем разгон: отпустило не сразу
+        const relax = setInterval(() => {
+          held = Math.max(held - 0.03, 0);
+          pace = SLOW - (SLOW - FAST) * held;
+          if (held <= 0) clearInterval(relax);
+        }, 90);
+      },
+      onRelease: () => {},
+    });
+  } else {
+    hint.textContent = 'отсчёт остановлен';
+  }
+</script>

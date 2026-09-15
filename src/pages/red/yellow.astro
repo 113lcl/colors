@@ -3,25 +3,175 @@ import Room from '../../layouts/Room.astro';
 ---
 
 <Room branch="red" slug="yellow">
-  <div class="stage">
-    <p class="holding">Мягкая, но резкая вспышка при взаимодействии.</p>
+  <div class="stage" id="stage" data-flip="off">
+    <button class="trigger" type="button" id="trigger">
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="-100 -100 200 200">
+          <path
+            d="M-30-66C14-84 62-56 70-12C79 38 42 76-6 74C-54 72-84 32-76-14C-71-43-53-57-30-66Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="26"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+      </span>
+      <span class="label">нажмите</span>
+    </button>
+
+    <span class="flash" aria-hidden="true"></span>
+
+    <p class="sr-only">При нажатии комната на мгновение переворачивается в светлое и тут же возвращается.</p>
   </div>
 </Room>
 
 <style>
   .stage {
     flex: 1;
+    position: relative;
     display: grid;
     place-items: center;
     padding: 0 var(--pad-x);
+    overflow: hidden;
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
+
+  /*
+    Вспышка — отдельный слой поверх сцены, а не смена фона: так она приходит
+    резко (60 мс), а уходит мягко (260 мс). Цвет остаётся в палитре — это
+    разбелённая охра ветки, а не посторонний жёлтый.
+  */
+  .flash {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      ellipse 90% 70% at 50% 46%,
+      color-mix(in oklab, var(--c-red) 34%, var(--ink) 66%) 0%,
+      color-mix(in oklab, var(--c-red) 58%, var(--ink) 42%) 46%,
+      color-mix(in oklab, var(--c-red) 76%, var(--ground) 24%) 100%
+    );
+    transition: opacity 260ms var(--ease-state);
+  }
+
+  .stage[data-flip='on'] .flash {
+    opacity: 0.92;
+    transition: opacity 60ms var(--ease-micro);
+  }
+
+  .trigger {
+    position: relative;
+    z-index: 1;
+    appearance: none;
+    background: none;
+    border: 0;
+    margin: 0;
+    padding: clamp(24px, 4vw, 44px);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    gap: clamp(18px, 2.6vw, 28px);
+    color: var(--c-red);
+    -webkit-tap-highlight-color: transparent;
+    transition: color 60ms var(--ease-micro);
+  }
+
+  .stage[data-flip='on'] .trigger {
+    color: var(--ground);
+    transition: color 60ms var(--ease-micro);
+  }
+
+  .mark {
+    display: block;
+    width: clamp(110px, 21vmin, 210px);
+  }
+
+  .mark svg {
+    width: 100%;
+    display: block;
+    overflow: visible;
+    transform-origin: 50% 50%;
+    /* покой: медленное дыхание, чтобы метка не выглядела кнопкой-заготовкой */
+    animation: mark-wait 6.2s var(--ease-amb) infinite;
+    --rest-offset: -3.1s;
+  }
+
+  @keyframes mark-wait {
+    0%,
+    100% {
+      scale: 1;
+      opacity: 0.86;
+    }
+    50% {
+      scale: 1.03;
+      opacity: 1;
+    }
+  }
+
+  /* сам удар: короткий и с акцентом — это красная грамматика в чистом виде */
+  .stage[data-flip='on'] .mark svg {
+    animation: mark-hit 230ms var(--ease-micro);
+  }
+
+  @keyframes mark-hit {
+    0% {
+      scale: 1;
+    }
+    38% {
+      scale: 1.14;
+    }
+    100% {
+      scale: 1;
+    }
+  }
+
+  .label {
     font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
+    font-size: 11.5px;
+    letter-spacing: 0.32em;
     color: var(--ink-dim);
-    opacity: 0.5;
+    opacity: 0.45;
+    transition:
+      opacity 170ms var(--ease-micro),
+      color 60ms var(--ease-micro);
+  }
+
+  .stage[data-flip='on'] .label {
+    color: var(--ground);
+    opacity: 0.75;
+  }
+
+  .trigger:hover .label,
+  .trigger:focus-visible .label {
+    opacity: 0.8;
+  }
+
+  /*
+    Без движения вспышка держится дольше и слабее: резкий скачок яркости —
+    именно то, чего просит избегать reduced-motion.
+  */
+  @media (prefers-reduced-motion: reduce) {
+    .stage[data-flip='on'] .flash {
+      opacity: 0.55;
+      transition: opacity 200ms linear;
+    }
   }
 </style>
+
+<script>
+  import { toggleScene } from '../../scripts/techniques/toggle-scene.js';
+
+  const stage = document.getElementById('stage');
+  const trigger = document.getElementById('trigger');
+
+  /*
+    cooldown 620 мс — не украшение, а защита: без него быстрые повторные клики
+    превращали бы комнату в стробоскоп. «На грани раздражителя» — это одна
+    вспышка, а не серия.
+  */
+  toggleScene(stage, {
+    trigger,
+    hold: 190,
+    cooldown: 620,
+  });
+</script>

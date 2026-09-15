@@ -4,7 +4,19 @@ import Room from '../../layouts/Room.astro';
 
 <Room branch="red" slug="orange">
   <div class="stage">
-    <p class="holding">Пульс в ровном собственном ритме, лёгкое нетерпение.</p>
+    <div class="pulse-wrap">
+      <span class="halo" aria-hidden="true"></span>
+      <svg class="blot" viewBox="-110 -110 220 220" aria-hidden="true">
+        <path
+          d="M-38-72C11-93 68-63 78-14C89 41 47 86-6 84C-58 82-92 38-84-16C-79-46-63-61-38-72Z"
+          fill="var(--c-red)"
+          opacity=".78"></path>
+        <path d="M-70-24C-84 26-52 71-4 78" fill="none" stroke="var(--c-red)" stroke-width="9" stroke-linecap="round" opacity=".5"></path>
+      </svg>
+      <span class="offbeat" aria-hidden="true"></span>
+    </div>
+
+    <p class="sr-only">Пятно пульсирует в ровном собственном ритме; рядом отбивается второй, чуть более частый.</p>
   </div>
 </Room>
 
@@ -15,13 +27,112 @@ import Room from '../../layouts/Room.astro';
     place-items: center;
     padding: 0 var(--pad-x);
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
-    font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
-    color: var(--ink-dim);
+
+  .pulse-wrap {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: clamp(180px, 30vmin, 320px);
+    aspect-ratio: 1;
+  }
+
+  .blot {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+    transform-origin: 50% 50%;
+    /*
+      Ровный пульс 1.15 с — чуть быстрее спокойного сердца. Нетерпение берётся
+      не из скорости, а из того, что удар короткий, а пауза длинная.
+    */
+    animation: beat 1.15s var(--ease-micro) infinite;
+    --rest-offset: -0.575s;
+  }
+
+  @keyframes beat {
+    0% {
+      scale: 1;
+      opacity: 0.86;
+    }
+    7% {
+      scale: 1.085;
+      opacity: 1;
+    }
+    19% {
+      scale: 0.995;
+    }
+    30% {
+      scale: 1;
+      opacity: 0.86;
+    }
+    100% {
+      scale: 1;
+      opacity: 0.86;
+    }
+  }
+
+  .halo {
+    position: absolute;
+    inset: -34%;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in oklab, var(--c-red) 26%, transparent) 0%, transparent 62%);
+    animation: halo-beat 1.15s var(--ease-micro) infinite;
+    --rest-offset: -0.575s;
+  }
+
+  @keyframes halo-beat {
+    0% {
+      scale: 0.94;
+      opacity: 0.4;
+    }
+    9% {
+      scale: 1.06;
+      opacity: 0.75;
+    }
+    46% {
+      scale: 0.94;
+      opacity: 0.4;
+    }
+    100% {
+      scale: 0.94;
+      opacity: 0.4;
+    }
+  }
+
+  /*
+    Второй ритм — 1.31 с. Он не совпадает с первым и никогда не совпадёт:
+    два такта медленно расходятся и снова сходятся, и это единственное, что
+    здесь происходит.
+  */
+  .offbeat {
+    position: absolute;
+    bottom: -14%;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--c-red);
     opacity: 0.5;
+    animation: offbeat 1.31s var(--ease-micro) infinite;
+    --rest-offset: -0.655s;
+  }
+
+  @keyframes offbeat {
+    0% {
+      scale: 1;
+      opacity: 0.32;
+    }
+    8% {
+      scale: 2.1;
+      opacity: 0.8;
+    }
+    34% {
+      scale: 1;
+      opacity: 0.32;
+    }
+    100% {
+      scale: 1;
+      opacity: 0.32;
+    }
   }
 </style>

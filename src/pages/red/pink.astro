@@ -1,10 +1,27 @@
 ---
 import Room from '../../layouts/Room.astro';
+
+const SHOUT = 'ПОЖАЛУЙСТА НЕ ВОЛНУЙТЕСЬ';
+const WORDS = SHOUT.split(' ');
 ---
 
 <Room branch="red" slug="pink">
   <div class="stage">
-    <p class="holding">Текст кричит крупно, а по смыслу — нежный.</p>
+    <h1 class="shout" aria-label={SHOUT}>
+      {
+        WORDS.map((word, wi) => (
+          <span class="word" aria-hidden="true">
+            {[...word].map((ch, ci) => (
+              <span class="ch" style={`--d:${((wi * 7 + ci * 3) % 11) * 0.37}s; --rest-offset:-${(3 + (ci % 5)).toFixed(1)}s;`}>
+                {ch}
+              </span>
+            ))}
+          </span>
+        ))
+      }
+    </h1>
+
+    <p class="whisper">сказано так громко, как только можно</p>
   </div>
 </Room>
 
@@ -12,16 +29,86 @@ import Room from '../../layouts/Room.astro';
   .stage {
     flex: 1;
     display: grid;
+    grid-template-rows: 1fr auto;
     place-items: center;
-    padding: 0 var(--pad-x);
+    padding: 12vh var(--pad-x) 14vh;
+    overflow: hidden;
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
+
+  /*
+    Форма кричит, смысл — нет. Кегль взят предельный, трекинг отрицательный,
+    строки сбиты в плотный блок: типографика ведёт себя как крик, а просьба
+    в ней — тихая.
+  */
+  .shout {
+    align-self: center;
+    margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
+    font-weight: 600;
+    /* кегль подобран так, чтобы самое длинное слово укладывалось целиком:
+       обрезанные о край буквы читаются как недосмотр, а не как приём */
+    font-size: clamp(40px, 8.4vw, 126px);
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    text-align: center;
+    color: var(--c-red);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.04em 0.22em;
+    max-width: 11ch;
+  }
+
+  .word {
+    display: inline-flex;
+  }
+
+  .ch {
+    display: inline-block;
+    /*
+      Буквы не стоят ровно: каждая дышит в своей фазе. Крик, который не может
+      удержаться на месте, — и есть напряжение этой комнаты.
+    */
+    animation: strain 5.4s var(--ease-amb) var(--d) infinite;
+  }
+
+  @keyframes strain {
+    0%,
+    100% {
+      translate: 0 0;
+      scale: 1;
+    }
+    46% {
+      translate: 0 -0.012em;
+      scale: 1.008;
+    }
+    52% {
+      translate: 0 0.014em;
+      scale: 0.994;
+    }
+  }
+
+  .whisper {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 11.5px;
+    letter-spacing: 0.3em;
     color: var(--ink-dim);
-    opacity: 0.5;
+    opacity: 0;
+    animation: whisper-in 3s var(--ease-state) 1.9s forwards;
+    --rest-offset: 0s;
+  }
+
+  @keyframes whisper-in {
+    to {
+      opacity: 0.36;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .shout {
+      max-width: 10ch;
+      font-size: clamp(32px, 11vw, 72px);
+    }
   }
 </style>
