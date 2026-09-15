@@ -1,10 +1,11 @@
 ---
 import Base from '../layouts/Base.astro';
+import { link } from '../lib/link.js';
 ---
 
 <Base title="Здесь ничего нет — Undertow" branch={null}>
   <div class="scene lost">
-    <a class="back-mark" href="/" aria-label="Вернуться к центру">
+    <a class="back-mark" href={link("/")} aria-label="Вернуться к центру">
       <span class="wordmark">Undertow</span>
       <span class="wordmark-rule"></span>
     </a>
@@ -24,7 +25,7 @@ import Base from '../layouts/Base.astro';
       <h1>Эта комната не открылась.</h1>
       <p>Возможно, её и не было. Отсюда всё равно можно вернуться к центру.</p>
 
-      <a class="exit exit--center" href="/">к центру</a>
+      <a class="exit exit--center" href={link("/")}>к центру</a>
     </div>
   </div>
 </Base>

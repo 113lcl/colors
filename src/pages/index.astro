@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import BrushMark from '../components/BrushMark.astro';
 import { branchRooms } from '../data/rooms.js';
+import { link } from '../lib/link.js';
 
 const MARKS = [
   { id: 'o-white', branch: 'white', href: '/white/cloud/', size: 50, label: 'выдохнуть', aria: 'Спокойная ветка', drift: '16s' },
@@ -58,7 +59,7 @@ const MARKS = [
             <a
               class="orb-wrap"
               id={m.id}
-              href={m.href}
+              href={link(m.href)}
               aria-label={m.aria}
               data-branch={m.branch}
               data-rooms={branchRooms(m.branch).length}
@@ -73,7 +74,7 @@ const MARKS = [
         }
       </div>
 
-      <a class="placard" href="/colophon/" aria-label="Колофон">undertow &nbsp; 心</a>
+      <a class="placard" href={link("/colophon/")} aria-label="Колофон">undertow &nbsp; 心</a>
     </div>
 
     <footer>

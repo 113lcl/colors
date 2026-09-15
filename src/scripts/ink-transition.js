@@ -12,9 +12,13 @@ const BRANCH_VAR = {
   blue: '--c-blue',
 };
 
+import { unbase } from '../lib/link.js';
+
 function branchFromHref(href) {
   try {
-    const path = new URL(href, location.href).pathname;
+    // адрес может быть с префиксом сайта (/colors/white/...), его нужно снять,
+    // иначе веткой окажется имя подпапки
+    const path = unbase(new URL(href, location.href).pathname);
     const seg = path.split('/').filter(Boolean)[0];
     return seg in BRANCH_VAR ? seg : null;
   } catch {

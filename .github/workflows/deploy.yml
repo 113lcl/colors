@@ -36,6 +36,19 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+      # GitHub Pages отдаёт проектный сайт по /<репозиторий>/, поэтому для
+      # публикации сайт пересобирается с этим префиксом и связность проверяется
+      # ещё раз — уже на тех адресах, по которым он реально будет жить
+      - name: Сборка под подпапку Pages
+        env:
+          SITE_BASE: ${{ github.event.repository.name }}
+        run: npm run build
+      - name: Связность под подпапкой
+        env:
+          SITE_BASE: ${{ github.event.repository.name }}
+        run: node scripts/crawl.mjs
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

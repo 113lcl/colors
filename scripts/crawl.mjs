@@ -13,6 +13,14 @@ import path from 'node:path';
 
 const DIST = path.resolve('dist');
 const MAX_HOPS_FROM_CENTRE = 4;
+/*
+  Сайт может быть собран под подпапку — тогда ссылки в HTML идут с префиксом.
+  Значение принимается в любой форме («colors», «/colors», «/colors/»): в Git Bash
+  под Windows путь с ведущим слэшем подменяется на windows-путь, поэтому в CI
+  переменная передаётся без него.
+*/
+const RAW_BASE = (process.env.SITE_BASE || '/').trim();
+const BASE = RAW_BASE === '/' || RAW_BASE === '' ? '' : `/${RAW_BASE.replace(/^\/+|\/+$/g, '')}`;
 
 if (!existsSync(DIST)) {
   console.error('Нет папки dist/ — сначала `npm run build`.');
@@ -38,6 +46,7 @@ const normalise = (href) => {
   if (/^(https?:|mailto:|tel:|#|data:)/i.test(href)) return null;
   let route = href.split('#')[0].split('?')[0];
   if (!route.startsWith('/')) return null;
+  if (BASE && route.startsWith(BASE)) route = route.slice(BASE.length) || '/';
   if (!route.endsWith('/') && !route.includes('.')) route += '/';
   return route;
 };

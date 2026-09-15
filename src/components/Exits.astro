@@ -4,6 +4,7 @@
   композиции, плюс всегда доступный путь обратно к центральной мандале.
 */
 import { exitsFor } from '../data/rooms.js';
+import { link } from '../lib/link.js';
 
 interface Props {
   branch: 'white' | 'black' | 'green' | 'red' | 'blue';
@@ -18,7 +19,7 @@ const exits = exitsFor(branch, slug);
   <div class="exit-group">
     {
       exits.map((e, i) => (
-        <a class="exit" href={e.href} style={`transition-delay:${i * 40}ms`}>
+        <a class="exit" href={link(e.href)} style={`transition-delay:${i * 40}ms`}>
           <span class="exit-glyph" aria-hidden="true">
             {e.glyph}
           </span>
@@ -27,7 +28,7 @@ const exits = exitsFor(branch, slug);
       ))
     }
   </div>
-  <a class="exit exit--center" href="/">к центру</a>
+  <a class="exit exit--center" href={link('/')}>к центру</a>
 </nav>
 
 <style>

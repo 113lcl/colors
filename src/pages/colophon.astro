@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { BRANCHES, branchRooms, roomPath } from '../data/rooms.js';
+import { link } from '../lib/link.js';
 
 const order = ['white', 'green', 'blue', 'black', 'red'] as const;
 ---
@@ -8,7 +9,7 @@ const order = ['white', 'green', 'blue', 'black', 'red'] as const;
 <Base title="Колофон — Undertow" branch={null} scrollable={true}>
   <div class="scene colophon">
     <header>
-      <a href="/" class="wordmark-link" aria-label="Вернуться к центру">
+      <a href={link("/")} class="wordmark-link" aria-label="Вернуться к центру">
         <span class="wordmark">Undertow</span>
         <span class="wordmark-rule"></span>
       </a>
@@ -32,7 +33,7 @@ const order = ['white', 'green', 'blue', 'black', 'red'] as const;
               <ul>
                 {branchRooms(b).map((r) => (
                   <li>
-                    <a href={roomPath(r.branch, r.slug)}>
+                    <a href={link(roomPath(r.branch, r.slug))}>
                       <span class="glyph" aria-hidden="true">
                         {r.glyph}
                       </span>
