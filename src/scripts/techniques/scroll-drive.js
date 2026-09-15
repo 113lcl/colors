@@ -3,7 +3,7 @@
   Элементы не реагируют ни на курсор, ни на клик: только положение прокрутки
   двигает их. Значение сглаживается, чтобы движение не повторяло рывки колеса.
 
-  scrollDrive({ onScroll: (p, v) => el.style.transform = `translate3d(0,${p * -200}px,0)` });
+  scrollDrive({ onScroll: (p) => el.style.transform = `translate3d(0,${p * -200}px,0)` });
 */
 
 import { onFrame, lerp, reduced } from './_util.js';
@@ -12,22 +12,25 @@ export function scrollDrive(options = {}) {
   const {
     target = window,
     ease = 0.085, // сглаживание: чем меньше, тем «тяжелее» сцена
-    onScroll = null, // (progress 0..1, velocity)
+    mode = 'progress', // 'progress' — 0..1 по длине страницы; 'absolute' — в пикселях
+    onScroll = null, // (value, velocity)
     restProgress = 0.5, // где замереть при reduced-motion — середина пути
   } = options;
 
   const el = target === window ? document.documentElement : target;
 
+  const top = () => (target === window ? scrollY : el.scrollTop);
+  const maxScroll = () => Math.max(el.scrollHeight - (target === window ? innerHeight : el.clientHeight), 0);
   const raw = () => {
-    const max = el.scrollHeight - (target === window ? innerHeight : el.clientHeight);
-    if (max <= 0) return 0;
-    const top = target === window ? scrollY : el.scrollTop;
-    return Math.min(Math.max(top / max, 0), 1);
+    if (mode === 'absolute') return top();
+    const max = maxScroll();
+    return max <= 0 ? 0 : Math.min(Math.max(top() / max, 0), 1);
   };
 
   if (reduced()) {
-    onScroll?.(restProgress, 0);
-    return { destroy() {}, progress: () => restProgress };
+    const rest = mode === 'absolute' ? maxScroll() * restProgress : restProgress;
+    onScroll?.(rest, 0);
+    return { destroy() {}, value: () => rest, shift() {} };
   }
 
   let smooth = raw();
@@ -43,6 +46,15 @@ export function scrollDrive(options = {}) {
 
   return {
     destroy: stop,
-    progress: () => smooth,
+    value: () => smooth,
+    /*
+      Сдвинуть внутреннее сглаженное значение вместе с прокруткой.
+      Нужно бесшовным петлям: когда страница молча перепрыгивает на целое число
+      периодов узора, сглаживание не должно «догонять» этот прыжок через полэкрана.
+    */
+    shift(delta) {
+      smooth += delta;
+      prev += delta;
+    },
   };
 }

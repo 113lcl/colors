@@ -28,17 +28,24 @@ export function revealText(el, options = {}) {
   const pieces =
     unit === 'char' ? [...source] : source.split(/(\s+)/).filter((p) => p.length > 0);
 
-  // разметка: каждый кусок — свой span, чтобы анимировать только opacity/transform
+  // разметка: каждое слово — свой span, чтобы анимировать только opacity/transform.
+  // Пробелы остаются текстовыми узлами: inline-block из .rv схлопнул бы их в ноль,
+  // и фраза слиплась бы в одно слово.
   el.textContent = '';
   el.setAttribute('aria-label', source);
-  const spans = pieces.map((p) => {
+  const spans = [];
+  for (const piece of pieces) {
+    if (!piece.trim()) {
+      el.appendChild(document.createTextNode(piece));
+      continue;
+    }
     const span = document.createElement('span');
     span.className = 'rv';
-    span.textContent = p;
+    span.textContent = piece;
     span.setAttribute('aria-hidden', 'true');
     el.appendChild(span);
-    return span;
-  });
+    spans.push(span);
+  }
 
   let timers = [];
 
@@ -60,10 +67,6 @@ export function revealText(el, options = {}) {
     let t = startDelay;
     spans.forEach((span, i) => {
       const text = span.textContent;
-      if (!text.trim()) {
-        span.classList.add('is-in');
-        return;
-      }
 
       timers.push(
         setTimeout(() => {

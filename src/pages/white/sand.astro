@@ -1,27 +1,219 @@
 ---
 import Room from '../../layouts/Room.astro';
+
+/*
+  Три слоя граблёных линий. Период тайла — 240 px у всех слоёв; скорости выбраны
+  так (0.4 / 0.6 / 0.8), чтобы прыжок прокрутки на 1200 px был кратен периоду в
+  каждом слое — тогда бесшовную петлю не видно ни в одном из них.
+*/
+const TILE = 240;
+
+function rakeLines(count, amp, seedShift) {
+  return Array.from({ length: count }, (_, i) => {
+    const y = ((i + 0.5) * TILE) / count;
+    const a = amp * (0.62 + (((i * 37 + seedShift) % 11) / 11) * 0.76);
+    return `M0 ${y.toFixed(1)} C150 ${(y - a).toFixed(1)} 150 ${(y + a).toFixed(1)} 300 ${y.toFixed(1)} C450 ${(y - a).toFixed(1)} 450 ${(y + a).toFixed(1)} 600 ${y.toFixed(1)}`;
+  });
+}
+
+const LAYERS = [
+  { id: 'far', lines: rakeLines(10, 5.5, 0), width: 0.75, opacity: 0.16, rate: 0.4 },
+  { id: 'mid', lines: rakeLines(6, 8, 4), width: 1.05, opacity: 0.2, rate: 0.6 },
+  { id: 'near', lines: rakeLines(3, 12, 8), width: 1.5, opacity: 0.22, rate: 0.8 },
+];
 ---
 
-<Room branch="white" slug="sand">
+<Room branch="white" slug="sand" scrollable={true}>
   <div class="stage">
-    <p class="holding">Бесконечный плавный скролл одного повторяющегося узора.</p>
+    {
+      LAYERS.map((layer) => (
+        <svg class={`rake rake--${layer.id}`} data-rate={layer.rate} aria-hidden="true">
+          <defs>
+            <pattern id={`p-${layer.id}`} width="600" height={TILE} patternUnits="userSpaceOnUse">
+              {layer.lines.map((d) => (
+                <path d={d} fill="none" stroke="var(--c-white)" stroke-width={layer.width} stroke-linecap="round" opacity={layer.opacity} />
+              ))}
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill={`url(#p-${layer.id})`} />
+        </svg>
+      ))
+    }
+
+    <div class="stone" aria-hidden="true">
+      <span class="clearing"></span>
+      <svg class="ripples" viewBox="-150 -150 300 300">
+        {
+          [58, 82, 107, 133].map((r, i) => (
+            <path
+              d={`M0 ${-r} C ${r * 0.58} ${-r} ${r} ${-r * 0.56} ${r} 0 C ${r} ${r * 0.58} ${r * 0.56} ${r} 0 ${r} C ${-r * 0.6} ${r} ${-r} ${r * 0.54} ${-r} 0 C ${-r} ${-r * 0.6} ${-r * 0.54} ${-r} 0 ${-r} Z`}
+              fill="none"
+              stroke="var(--c-white)"
+              stroke-width={1.5 - i * 0.18}
+              opacity={0.3 - i * 0.05}
+              style={`--dur:${26 + i * 7}s; --rest-offset:-${13 + i * 3.5}s;`}
+            />
+          ))
+        }
+      </svg>
+      <svg class="rock" viewBox="-60 -42 120 84">
+        <path
+          d="M-41-9C-35-26-12-34 10-30C33-26 46-11 43 5C40 22 17 31-8 28C-33 25-47 8-41-9Z"
+          fill="var(--c-white)"
+          opacity=".2"></path>
+        <path
+          d="M-41-9C-35-26-12-34 10-30C33-26 46-11 43 5"
+          fill="none"
+          stroke="var(--c-white)"
+          stroke-width="3"
+          stroke-linecap="round"
+          opacity=".3"></path>
+      </svg>
+    </div>
+
+    <p class="sr-only">Бесконечный узор граблёных линий, который движется только от прокрутки.</p>
   </div>
+
+  <div class="track" aria-hidden="true"></div>
 </Room>
 
 <style>
   .stage {
-    flex: 1;
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* высота-«дорожка»: единственное, что даёт странице прокрутку */
+  .track {
+    height: 400vh;
+  }
+
+  .rake {
+    position: absolute;
+    left: -5%;
+    width: 110%;
+    top: -320px;
+    height: calc(100vh + 640px);
+    will-change: transform;
+  }
+
+  .rake--far {
+    opacity: 0.85;
+  }
+  .rake--mid {
+    opacity: 0.9;
+  }
+  .rake--near {
+    opacity: 1;
+  }
+
+  /* камень и расчищенная вокруг него площадка — единственное неподвижное место */
+  .stone {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: clamp(260px, 46vmin, 520px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
     display: grid;
     place-items: center;
-    padding: 0 var(--pad-x);
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
-    font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
-    color: var(--ink-dim);
-    opacity: 0.5;
+
+  /* граблёные линии не идут сквозь камень: вокруг него подметено */
+  .clearing {
+    position: absolute;
+    inset: -6%;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--ground) 38%, color-mix(in oklab, var(--ground) 82%, transparent) 62%, transparent 76%);
+  }
+
+  .ripples {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .ripples path {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    /* рябь вокруг камня дышит, каждое кольцо в своём темпе */
+    animation: ring-breathe var(--dur) var(--ease-amb) infinite;
+  }
+  @keyframes ring-breathe {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.018);
+    }
+  }
+
+  .rock {
+    position: relative;
+    width: 38%;
+    display: block;
+    animation: stone-settle 34s var(--ease-amb) infinite;
+    --rest-offset: -17s;
+  }
+  @keyframes stone-settle {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) rotate(0deg);
+    }
+    50% {
+      transform: translate3d(0, -4px, 0) rotate(-0.6deg);
+    }
   }
 </style>
+
+<script>
+  import { scrollDrive } from '../../scripts/techniques/scroll-drive.js';
+  import { reduced } from '../../scripts/techniques/_util.js';
+
+  const TILE = 240;
+  const JUMP = TILE * 5; // 1200 px — кратно периоду при всех трёх скоростях
+  const layers = [...document.querySelectorAll('.rake')].map((el) => ({
+    el,
+    rate: parseFloat(el.dataset.rate || '0.5'),
+  }));
+
+  const paint = (y) => {
+    for (const l of layers) {
+      const offset = -(((y * l.rate) % TILE) + TILE) % TILE;
+      l.el.style.transform = `translate3d(0, ${offset.toFixed(2)}px, 0)`;
+    }
+  };
+
+  if (reduced()) {
+    // точка покоя: узор стоит на середине тайла, а не в нулевой фазе
+    paint(TILE / 2 / 0.4);
+  } else {
+    // стартуем из середины дорожки, чтобы прокрутка была возможна в обе стороны
+    scrollTo({ top: JUMP, behavior: 'instant' });
+
+    const drive = scrollDrive({
+      mode: 'absolute',
+      ease: 0.075,
+      onScroll: paint,
+    });
+
+    // бесшовная петля: у краёв дорожки возвращаем прокрутку на целое число тайлов
+    // и на столько же сдвигаем сглаженное значение, иначе оно «догоняло» бы прыжок
+    addEventListener(
+      'scroll',
+      () => {
+        const max = document.documentElement.scrollHeight - innerHeight;
+        const delta = scrollY > max - innerHeight * 0.6 ? -JUMP : scrollY < innerHeight * 0.3 ? JUMP : 0;
+        if (!delta) return;
+        scrollTo({ top: scrollY + delta, behavior: 'instant' });
+        drive.shift(delta);
+      },
+      { passive: true }
+    );
+
+    paint(scrollY);
+  }
+</script>

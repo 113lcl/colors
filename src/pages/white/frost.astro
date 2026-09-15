@@ -1,27 +1,159 @@
 ---
 import Room from '../../layouts/Room.astro';
+
+/*
+  Иней рисуется на сборке, а не в браузере: форма у всех одна и та же при каждом
+  заходе (это не генеративная комната), зато разметка статична и ничего не считает
+  во время показа. Появление отдано CSS — только opacity и transform.
+*/
+function prng(seed) {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) % 4294967296;
+    return s / 4294967296;
+  };
+}
+
+/*
+  Дендрит: иней растёт почти прямым стеблем и даёт регулярные иглы под острым
+  углом, укорачивающиеся к вершине. Кривой стебель с редкими случайными сучьями
+  читался бы как ветка дерева — это ровно то, чего в проекте быть не должно.
+*/
+function crystal(rand, cx, cy, len, angle, depth = 0) {
+  const seg = [];
+  const needles = [];
+  let x = cx;
+  let y = cy;
+  let a = angle;
+  const steps = 7 + Math.floor(rand() * 4);
+  const step = len / steps;
+
+  for (let i = 0; i < steps; i++) {
+    a += (rand() - 0.5) * 0.09; // стебель почти прямой
+    x += Math.cos(a) * step;
+    y += Math.sin(a) * step;
+    seg.push(`${x.toFixed(1)} ${y.toFixed(1)}`);
+
+    if (i === 0) continue;
+
+    const taper = 1 - i / steps; // иглы короче к вершине
+    const branchAngle = 0.95 + rand() * 0.22; // около 60°, как у настоящего инея
+    for (const side of [-1, 1]) {
+      if (rand() > 0.86) continue; // редкие пропуски — иначе слишком правильная ёлочка
+      const bl = step * (0.85 + rand() * 0.5) * (0.45 + taper);
+      const ba = a + side * branchAngle;
+      const nx = x + Math.cos(ba) * bl;
+      const ny = y + Math.sin(ba) * bl;
+      needles.push(`M ${x.toFixed(1)} ${y.toFixed(1)} L ${nx.toFixed(1)} ${ny.toFixed(1)}`);
+
+      // второй порядок ветвления — то, что отличает иней от ёлочки
+      if (depth === 0 && rand() > 0.55) {
+        const sub = crystal(rand, nx, ny, bl * 0.75, ba, 1);
+        needles.push(sub.stem, ...sub.needles);
+      }
+    }
+  }
+
+  return {
+    stem: `M ${cx} ${cy} L ${seg.join(' L ')}`,
+    needles,
+  };
+}
+
+const rand = prng(20260915);
+const CRYSTALS = Array.from({ length: 26 }, () => {
+  const cx = -40 + rand() * 1080;
+  const cy = -30 + rand() * 660;
+  const angle = rand() * Math.PI * 2;
+  const len = 55 + rand() * 175;
+  const c = crystal(rand, cx, cy, len, angle);
+  return {
+    ...c,
+    // каждая ветка проступает в своём темпе: одинаковые петли читались бы как одна гифка
+    dur: (19 + rand() * 13).toFixed(1),
+    delay: (rand() * 26).toFixed(1),
+    peak: (0.12 + rand() * 0.26).toFixed(2),
+    width: (0.5 + rand() * 0.45).toFixed(2),
+  };
+});
 ---
 
 <Room branch="white" slug="frost">
   <div class="stage">
-    <p class="holding">Пустое пространство, где очень медленно проступают линии инея.</p>
+    <svg class="pane" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      {
+        CRYSTALS.map((c) => (
+          <g
+            class="crystal"
+            style={`--dur:${c.dur}s; --delay:-${c.delay}s; --peak:${c.peak}; --rest-offset:-${Number(c.dur) / 2}s;`}
+          >
+            <path d={c.stem} fill="none" stroke="var(--c-white)" stroke-width={c.width} stroke-linecap="round" />
+            {c.needles.map((n) => (
+              <path d={n} fill="none" stroke="var(--c-white)" stroke-width={Number(c.width) * 0.7} stroke-linecap="round" />
+            ))}
+          </g>
+        ))
+      }
+    </svg>
+    <p class="sr-only">Пустое пространство, в котором очень медленно проступают линии инея.</p>
   </div>
 </Room>
 
 <style>
   .stage {
     flex: 1;
+    position: relative;
     display: grid;
     place-items: center;
-    padding: 0 var(--pad-x);
+    overflow: hidden;
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
-    font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
-    color: var(--ink-dim);
-    opacity: 0.5;
+
+  .pane {
+    position: absolute;
+    inset: -6%;
+    width: 112%;
+    height: 112%;
+    /* стекло чуть ведёт — очень медленно, на грани заметности */
+    animation: pane-drift 74s var(--ease-amb) infinite;
+    --rest-offset: -37s;
+  }
+
+  @keyframes pane-drift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(-1.2%, 0.9%, 0) scale(1.035);
+    }
+  }
+
+  .crystal {
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: frost var(--dur) var(--ease-amb) var(--delay) infinite;
+  }
+
+  /*
+    Иней приходит и уходит, но не «мигает»: долгое нарастание, короткая полка,
+    ещё более долгое таяние. Пик у каждой ветки свой (--peak).
+  */
+  @keyframes frost {
+    0% {
+      opacity: 0;
+      transform: scale(0.965);
+    }
+    38% {
+      opacity: var(--peak);
+    }
+    58% {
+      opacity: var(--peak);
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.028);
+    }
   }
 </style>
