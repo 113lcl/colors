@@ -1,27 +1,206 @@
 ---
 import Room from '../../layouts/Room.astro';
+
+function prng(seed) {
+  let s = seed;
+  return () => {
+    s = (s * 1103515245 + 12345) % 2147483648;
+    return s / 2147483648;
+  };
+}
+
+const rand = prng(7731);
+
+/*
+  Пыль живёт ВНУТРИ наклонного луча — в его собственных координатах, поэтому
+  она выровнена по лучу по построению, а не подгонкой чисел. Это важно: точки,
+  рассыпанные по всей черноте, читаются как звёздное небо, а нужен воздух
+  сумеречной комнаты. Оттуда же размытие: у звезды край резкий, у пылинки нет.
+  Ближе к оси луча пылинок больше и они ярче.
+*/
+const MOTES = Array.from({ length: 52 }, () => {
+  const across = Math.pow(rand(), 0.65); // плотнее к оси
+  const side = rand() > 0.5 ? 1 : -1;
+  const centreness = 1 - across;
+  return {
+    left: (50 + side * across * 44).toFixed(2),
+    top: (rand() * 100).toFixed(2),
+    size: (1.3 + rand() * 3).toFixed(2),
+    opacity: (0.08 + centreness * 0.34 + rand() * 0.1).toFixed(2),
+    blur: (0.3 + rand() * 0.9).toFixed(2),
+    dur: (54 + rand() * 70).toFixed(1),
+    delay: (rand() * 90).toFixed(1),
+    dx: (rand() * 4 - 2).toFixed(2),
+    dy: (-3 - rand() * 7).toFixed(2),
+    pulse: (15 + rand() * 20).toFixed(1),
+  };
+});
 ---
 
 <Room branch="blue" slug="dusk">
   <div class="stage">
-    <p class="holding">Почти неподвижная сцена с очень медленным дрейфом частиц.</p>
+    <span class="wall" aria-hidden="true"></span>
+
+    <div class="beam" aria-hidden="true">
+      <span class="beam-glow"></span>
+      {
+        MOTES.map((m) => (
+          <span
+            class="mote"
+            style={`
+              left:${m.left}%; top:${m.top}%;
+              width:${m.size}px; height:${m.size}px;
+              filter:blur(${m.blur}px);
+              --o:${m.opacity};
+              --dur:${m.dur}s; --delay:-${m.delay}s;
+              --dx:${m.dx}%; --dy:${m.dy}%;
+              --pulse:${m.pulse}s;
+              --rest-offset:-${Number(m.dur) / 2}s;
+            `}
+          />
+        ))
+      }
+    </div>
+
+    <span class="floor" aria-hidden="true"></span>
+
+    <p class="sr-only">Сумеречная комната: в косом луче очень медленно дрейфует пыль.</p>
   </div>
 </Room>
 
 <style>
   .stage {
     flex: 1;
-    display: grid;
-    place-items: center;
-    padding: 0 var(--pad-x);
+    position: relative;
+    overflow: hidden;
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
-    font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
-    color: var(--ink-dim);
-    opacity: 0.5;
+
+  /* стена: свет садится, верх уходит в тень, низ ещё держит последний отсвет */
+  .wall {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 0%, transparent 44%),
+      radial-gradient(ellipse 120% 64% at 46% 106%, color-mix(in oklab, var(--c-blue) 16%, transparent), transparent 66%);
+    animation: wall-settle 96s var(--ease-amb) infinite;
+    --rest-offset: -48s;
+  }
+
+  @keyframes wall-settle {
+    0%,
+    100% {
+      opacity: 0.86;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /*
+    Луч. Всё, что внутри, наследует его поворот — в том числе дрейф пылинок,
+    поэтому пыль сносит вдоль луча, а не поперёк экрана.
+  */
+  .beam {
+    position: absolute;
+    top: -42%;
+    left: 4%;
+    width: 44%;
+    height: 184%;
+    transform: rotate(17deg);
+    transform-origin: 50% 0;
+  }
+
+  .beam-glow {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--c-blue) 26%, transparent) 0%,
+      color-mix(in oklab, var(--c-blue) 14%, transparent) 38%,
+      color-mix(in oklab, var(--c-blue) 5%, transparent) 68%,
+      transparent 88%
+    );
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 26%, #000 74%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 26%, #000 74%, transparent 100%);
+    filter: blur(18px);
+    opacity: 0.8;
+    animation: beam-waver 64s var(--ease-amb) infinite;
+    --rest-offset: -32s;
+  }
+
+  @keyframes beam-waver {
+    0%,
+    100% {
+      opacity: 0.66;
+      scale: 1 1;
+    }
+    50% {
+      opacity: 0.95;
+      scale: 1.05 1;
+    }
+  }
+
+  .mote {
+    position: absolute;
+    border-radius: 50%;
+    background: color-mix(in oklab, var(--c-blue) 58%, var(--ink) 42%);
+    opacity: var(--o);
+    will-change: transform;
+    animation:
+      mote-drift var(--dur) linear var(--delay) infinite,
+      mote-pulse var(--pulse) var(--ease-amb) var(--delay) infinite;
+  }
+
+  @keyframes mote-drift {
+    0% {
+      translate: 0 0;
+    }
+    100% {
+      translate: var(--dx) var(--dy);
+    }
+  }
+
+  @keyframes mote-pulse {
+    0%,
+    100% {
+      opacity: calc(var(--o) * 0.45);
+      scale: 0.85;
+    }
+    50% {
+      opacity: var(--o);
+      scale: 1.18;
+    }
+  }
+
+  /* линия пола: без неё сцена теряет верх и низ и снова становится пустотой */
+  .floor {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 19%;
+    height: 1px;
+    background: linear-gradient(to right, transparent 3%, color-mix(in oklab, var(--c-blue) 44%, transparent) 36%, transparent 90%);
+    opacity: 0.6;
+    animation: floor-breathe 58s var(--ease-amb) infinite;
+    --rest-offset: -29s;
+  }
+
+  @keyframes floor-breathe {
+    0%,
+    100% {
+      opacity: 0.44;
+      scale: 1 1;
+    }
+    50% {
+      opacity: 0.72;
+      scale: 1.02 1;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .beam {
+      left: -6%;
+      width: 62%;
+    }
   }
 </style>

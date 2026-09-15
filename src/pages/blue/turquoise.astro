@@ -1,27 +1,176 @@
 ---
 import Room from '../../layouts/Room.astro';
+
+/*
+  Отражение в воде: несколько слоёв горизонтальных полос на разной «глубине».
+  Курсор не показывает пятно — он только чуть наклоняет всю толщу, как если бы
+  вы сместились на полшага у края воды.
+*/
+const LAYERS = [0, 1, 2, 3, 4].map((i) => ({
+  depth: 0.18 + i * 0.22,
+  y: 14 + i * 17,
+  opacity: (0.3 - i * 0.045).toFixed(2),
+  dur: (24 + i * 9).toFixed(0),
+  lines: Array.from({ length: 7 }, (_, k) => ({
+    y: k * 14 + (i % 2) * 5,
+    w: 18 + ((i * 31 + k * 17) % 44),
+    x: ((i * 23 + k * 41) % 74) - 4,
+    h: (0.6 + ((i * 7 + k * 13) % 9) / 9).toFixed(2),
+    o: (0.45 + ((i * 11 + k * 5) % 11) / 20).toFixed(2),
+    dur: (17 + ((i * 9 + k * 23) % 21)).toFixed(0),
+    delay: ((i * 13 + k * 7) % 19).toFixed(0),
+  })),
+}));
 ---
 
 <Room branch="blue" slug="turquoise">
-  <div class="stage">
-    <p class="holding">Почти невесомое движение, как отражения в воде.</p>
+  <div class="stage" id="stage">
+    <div class="water">
+      {
+        LAYERS.map((layer) => (
+          <div class="band" data-depth={layer.depth} style={`top:${layer.y}%; opacity:${layer.opacity};`} aria-hidden="true">
+            <svg
+              class="band-inner"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              style={`--dur:${layer.dur}s; --rest-offset:-${Number(layer.dur) / 2}s;`}
+            >
+              {layer.lines.map((l) => (
+                <rect
+                  class="glimmer"
+                  x={l.x}
+                  y={l.y}
+                  width={l.w}
+                  height={l.h}
+                  rx={Number(l.h) / 2}
+                  fill="var(--c-blue)"
+                  opacity={l.o}
+                  style={`--dur:${l.dur}s; --delay:-${l.delay}s; --rest-offset:-${Number(l.dur) / 2}s;`}
+                />
+              ))}
+            </svg>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="glint" id="glint" aria-hidden="true"></div>
+    <p class="sr-only">Слои отражений, которые чуть смещаются вслед за курсором.</p>
   </div>
 </Room>
 
 <style>
   .stage {
     flex: 1;
+    position: relative;
+    overflow: hidden;
     display: grid;
     place-items: center;
-    padding: 0 var(--pad-x);
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
-    font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
-    color: var(--ink-dim);
-    opacity: 0.5;
+
+  .water {
+    position: absolute;
+    inset: 0;
+  }
+
+  /*
+    Два уровня нарочно: внешний двигает курсор, внутренний — собственная петля.
+    В одном элементе анимация перебила бы инлайновый translate от скрипта.
+  */
+  .band {
+    position: absolute;
+    left: -4%;
+    width: 108%;
+    height: 22%;
+    will-change: transform;
+  }
+
+  .band-inner {
+    width: 100%;
+    height: 100%;
+    display: block;
+    /* собственное покачивание слоя — оно есть и без курсора */
+    animation: band-sway var(--dur) var(--ease-amb) infinite;
+    /* края отражений не обрываются о рамку экрана, а растворяются */
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 21%, #000 79%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 21%, #000 79%, transparent 100%);
+    filter: blur(0.7px);
+  }
+
+  /* каждый блик живёт своей жизнью: вода не мигает одним кадром */
+  .glimmer {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: glimmer var(--dur) var(--ease-amb) var(--delay) infinite;
+  }
+
+  @keyframes glimmer {
+    0%,
+    100% {
+      scale: 1 1;
+      opacity: 0.55;
+      translate: 0 0;
+    }
+    50% {
+      scale: 1.14 0.7;
+      opacity: 1;
+      translate: 2.5% 0;
+    }
+  }
+
+  @keyframes band-sway {
+    0%,
+    100% {
+      translate: 0 0;
+      scale: 1 1;
+    }
+    50% {
+      translate: -1.6% 0;
+      scale: 1.012 1;
+    }
+  }
+
+  /* блик: он и есть «пятно за курсором», только размытое до неузнаваемости */
+  .glint {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: clamp(320px, 52vmin, 640px);
+    aspect-ratio: 1.7;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(ellipse, color-mix(in oklab, var(--c-blue) 22%, transparent) 0%, transparent 62%);
+    transition: opacity 2600ms var(--ease-state);
+    will-change: transform;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .glint {
+      opacity: 0.5;
+    }
   }
 </style>
+
+<script>
+  import { cursorSpot } from '../../scripts/techniques/cursor-spot.js';
+
+  const bands = [...document.querySelectorAll('.band')];
+
+  /*
+    Смещение слоёв считается от того же сглаженного положения, что и блик:
+    одна инерция на всю комнату, поэтому вода не «разъезжается» по частям.
+    Синяя грамматика — ease 0.018, это несколько секунд на догон.
+  */
+  cursorSpot(document.getElementById('glint'), {
+    ease: 0.018,
+    onMove: (pos) => {
+      const dx = (pos.x / innerWidth - 0.5) * 2;
+      const dy = (pos.y / innerHeight - 0.5) * 2;
+      for (const band of bands) {
+        const depth = Number(band.dataset.depth);
+        band.style.translate = `${(dx * depth * 26).toFixed(2)}px ${(dy * depth * 9).toFixed(2)}px`;
+      }
+    },
+  });
+</script>

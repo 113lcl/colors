@@ -4,24 +4,115 @@ import Room from '../../layouts/Room.astro';
 
 <Room branch="blue" slug="deep">
   <div class="stage">
-    <p class="holding">Текст очень медленно проявляется из темноты.</p>
+    <div class="column">
+      <p class="para reveal-host" id="p1">Отсюда всё выглядит меньше.</p>
+      <p class="para reveal-host" id="p2">Не хуже — просто дальше.</p>
+      <p class="para reveal-host" id="p3">Между тем, что было, и тем, где вы стоите сейчас, уместилось больше воды, чем кажется.</p>
+      <p class="para reveal-host" id="p4">Дочитать это быстрее нельзя.</p>
+    </div>
+
+    <span class="deepness" aria-hidden="true"></span>
   </div>
 </Room>
 
 <style>
   .stage {
     flex: 1;
+    position: relative;
     display: grid;
     place-items: center;
-    padding: 0 var(--pad-x);
+    padding: 14vh var(--pad-x) 16vh;
+    overflow: hidden;
   }
-  .holding {
+
+  /* толща воды над текстом: чем ниже, тем темнее — текст будто лежит на глубине */
+  .deepness {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(to bottom, color-mix(in oklab, var(--c-blue) 9%, transparent) 0%, transparent 42%, rgba(0, 0, 0, 0.42) 100%);
+    animation: deepness-shift 46s var(--ease-amb) infinite;
+    --rest-offset: -23s;
+  }
+
+  @keyframes deepness-shift {
+    0%,
+    100% {
+      opacity: 0.8;
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      opacity: 1;
+      transform: translate3d(0, -1.8%, 0);
+    }
+  }
+
+  .column {
+    position: relative;
+    z-index: 1;
     max-width: 30ch;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(20px, 3.4vw, 40px);
+  }
+
+  .para {
+    margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
+    font-size: clamp(18px, 2.6vw, 27px);
+    line-height: 1.68;
+    letter-spacing: 0.012em;
+    color: color-mix(in oklab, var(--c-blue) 52%, var(--ink) 48%);
+    text-wrap: pretty;
+  }
+
+  /*
+    Синяя грамматика: слово не «появляется», а всплывает несколько секунд.
+    Длительность перехода задаётся через --dur-reveal, который читает reveal-text.
+  */
+  .column {
+    --dur-reveal: 2600ms;
+  }
+
+  .para:nth-child(2) {
+    align-self: flex-end;
+    text-align: right;
+  }
+  .para:nth-child(4) {
+    align-self: flex-end;
+    text-align: right;
+    font-size: clamp(15px, 1.9vw, 20px);
     color: var(--ink-dim);
-    opacity: 0.5;
+    opacity: 0.72;
   }
 </style>
+
+<script>
+  import { revealText } from '../../scripts/techniques/reveal-text.js';
+  import { reduced } from '../../scripts/techniques/_util.js';
+
+  /*
+    Терпение здесь — содержание комнаты, а не помеха: слова идут втрое медленнее,
+    чем в белой ветке, и абзацы стартуют друг за другом, а не разом.
+    При reduced-motion текст отдаётся целиком: ждать нечего, если ничего не движется.
+  */
+  const SCHEDULE = [
+    { id: 'p1', at: 900, base: 430 },
+    { id: 'p2', at: 7600, base: 430 },
+    { id: 'p3', at: 14500, base: 360 },
+    { id: 'p4', at: 34000, base: 520 },
+  ];
+
+  for (const item of SCHEDULE) {
+    const el = document.getElementById(item.id);
+    if (!el) continue;
+
+    // разбор запускается сразу — иначе текст ждал бы своего часа только в разметке
+    // и был бы недоступен скринридеру; откладывается именно проявление
+    revealText(el, {
+      unit: 'word',
+      base: reduced() ? 0 : item.base,
+      startDelay: reduced() ? 0 : item.at,
+    });
+  }
+</script>

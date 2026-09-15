@@ -32,7 +32,13 @@ export function revealText(el, options = {}) {
   // Пробелы остаются текстовыми узлами: inline-block из .rv схлопнул бы их в ноль,
   // и фраза слиплась бы в одно слово.
   el.textContent = '';
-  el.setAttribute('aria-label', source);
+  // Полный текст — скрытым узлом для скринридера. aria-label на <p> запрещён
+  // (у generic-роли этот атрибут не разрешён), поэтому подпись именно текстом.
+  const sr = document.createElement('span');
+  sr.className = 'sr-only';
+  sr.textContent = source;
+  el.appendChild(sr);
+
   const spans = [];
   for (const piece of pieces) {
     if (!piece.trim()) {

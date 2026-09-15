@@ -1,27 +1,213 @@
 ---
 import Room from '../../layouts/Room.astro';
+
+/*
+  Масштаб без единиц: линейка, у которой шаг сжимается вправо до тех пор, пока
+  деления не сливаются в сплошную полосу. Видно ровно одно — что дальше меряется
+  чем-то, для чего у этой линейки нет делений. Ни одной цифры, ни одной величины.
+*/
+const N = 168;
+const TICKS = Array.from({ length: N }, (_, i) => {
+  const t = i / (N - 1);
+  const x = 100 * (1 - Math.pow(1 - t, 2.9)); // деления густеют к правому краю
+  const major = i % 12 === 0;
+  const half = i % 6 === 0;
+  return {
+    x: x.toFixed(3),
+    h: major ? 30 : half ? 18 : 10,
+    opacity: (0.4 - t * 0.2) * (major ? 1 : half ? 0.72 : 0.5),
+    dur: (26 + ((i * 17) % 22)).toFixed(0),
+    delay: ((i * 5) % 23).toFixed(0),
+  };
+});
 ---
 
 <Room branch="blue" slug="steel">
   <div class="stage">
-    <p class="holding">Абстрактная величина расстояния без единиц — просто масштаб.</p>
+    <div class="ruler">
+      <span class="baseline" aria-hidden="true"></span>
+
+      <svg class="ticks" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
+        {
+          TICKS.map((tick) => (
+            <rect
+              class="tick"
+              x={tick.x}
+              y={20 - tick.h / 2}
+              width="0.08"
+              height={tick.h}
+              fill="var(--c-blue)"
+              opacity={tick.opacity.toFixed(3)}
+              style={`--dur:${tick.dur}s; --delay:-${tick.delay}s; --rest-offset:-${Number(tick.dur) / 2}s;`}
+            />
+          ))
+        }
+      </svg>
+
+      <span class="crawler" aria-hidden="true"></span>
+      <span class="merge" aria-hidden="true"></span>
+    </div>
+
+    <p class="sr-only">
+      Линейка, деления которой сгущаются вправо и в конце сливаются: расстояние есть, единиц измерения нет.
+    </p>
   </div>
 </Room>
 
 <style>
   .stage {
     flex: 1;
+    position: relative;
     display: grid;
     place-items: center;
-    padding: 0 var(--pad-x);
+    overflow: hidden;
+    padding: 0 0 6vh;
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
-    font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
-    color: var(--ink-dim);
-    opacity: 0.5;
+
+  .ruler {
+    position: relative;
+    width: min(88vw, 1180px);
+    height: 160px;
+    display: grid;
+    place-items: center;
+  }
+
+  .baseline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      color-mix(in oklab, var(--c-blue) 42%, transparent) 12%,
+      color-mix(in oklab, var(--c-blue) 52%, transparent) 88%,
+      color-mix(in oklab, var(--c-blue) 18%, transparent) 100%
+    );
+    opacity: 0.6;
+    animation: baseline-breathe 44s var(--ease-amb) infinite;
+    --rest-offset: -22s;
+  }
+
+  @keyframes baseline-breathe {
+    0%,
+    100% {
+      opacity: 0.44;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  .ticks {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .tick {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    /* деления еле дышат вразнобой — строй не должен выглядеть напечатанным */
+    animation: tick-breathe var(--dur) var(--ease-amb) var(--delay) infinite;
+  }
+
+  @keyframes tick-breathe {
+    0%,
+    100% {
+      scale: 1 1;
+    }
+    50% {
+      scale: 1 0.82;
+    }
+  }
+
+  /* у правого края деления окончательно сливаются — там мерить уже нечем */
+  .merge {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    width: 22%;
+    height: 32px;
+    transform: translateY(-50%);
+    background: linear-gradient(to right, transparent, color-mix(in oklab, var(--c-blue) 16%, transparent));
+    filter: blur(7px);
+    opacity: 0.8;
+    animation: merge-breathe 52s var(--ease-amb) infinite;
+    --rest-offset: -26s;
+  }
+
+  @keyframes merge-breathe {
+    0%,
+    100% {
+      opacity: 0.6;
+      scale: 1 1;
+    }
+    50% {
+      opacity: 0.9;
+      scale: 1.06 1;
+    }
+  }
+
+  /*
+    Метка идёт вправо почти две минуты и не доходит до края: к концу пути
+    один и тот же шаг покрывает всё меньше делений — так и ощущается масштаб.
+  */
+  .crawler {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    margin-top: -2px;
+    border-radius: 50%;
+    background: color-mix(in oklab, var(--c-blue) 70%, var(--ink) 30%);
+    animation: crawl 108s cubic-bezier(0.12, 0.62, 0.32, 1) infinite;
+    --rest-offset: -54s;
+  }
+
+  @keyframes crawl {
+    0% {
+      translate: 0 0;
+      opacity: 0;
+      scale: 1.8;
+    }
+    6% {
+      opacity: 0.9;
+    }
+    86% {
+      opacity: 0.35;
+    }
+    100% {
+      translate: 84vw 0;
+      opacity: 0;
+      scale: 0.45;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .ruler {
+      height: 120px;
+    }
+    @keyframes crawl {
+      0% {
+        translate: 0 0;
+        opacity: 0;
+        scale: 1.8;
+      }
+      6% {
+        opacity: 0.9;
+      }
+      86% {
+        opacity: 0.35;
+      }
+      100% {
+        translate: 78vw 0;
+        opacity: 0;
+        scale: 0.45;
+      }
+    }
   }
 </style>
