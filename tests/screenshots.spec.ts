@@ -22,6 +22,19 @@ test.describe('портреты комнат', () => {
     await page.screenshot({ path: 'screenshots/01-колофон.png' });
   });
 
+  /* Мятный оживает только рядом с курсором — в статике этого не увидеть. */
+  test('мятный рядом с курсором', async ({ page }) => {
+    await page.goto('/green/mint/');
+    await page.waitForTimeout(1200);
+
+    const drop = page.locator('#drop');
+    const box = (await drop.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2 + 40, box.y + box.height / 2 + 30);
+    await page.waitForTimeout(1600);
+
+    await page.screenshot({ path: 'screenshots/green-mint-рядом.png' });
+  });
+
   /*
     Фиолетовый в спокойном виде ничем не отличается от отсчёта в чёрной ветке.
     Разница появляется, только если задержаться: счёт разгоняется, знак растёт
