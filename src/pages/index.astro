@@ -1,0 +1,301 @@
+---
+import Base from '../layouts/Base.astro';
+import BrushMark from '../components/BrushMark.astro';
+
+const MARKS = [
+  { id: 'o-white', branch: 'white', href: '/white/cloud/', size: 50, label: 'выдохнуть', aria: 'Спокойная ветка', drift: '16s' },
+  { id: 'o-blue', branch: 'blue', href: '/blue/deep/', size: 68, label: 'всё дальше', aria: 'Далёкая ветка', drift: '20s' },
+  { id: 'o-red', branch: 'red', href: '/red/orange/', size: 42, label: 'на секунду', aria: 'Напряжённая ветка', drift: '9s' },
+  { id: 'o-black', branch: 'black', href: '/black/anthracite/', size: 64, label: 'не сейчас', aria: 'Тревожная ветка', drift: '13.5s' },
+  { id: 'o-green', branch: 'green', href: '/green/sage/', size: 56, label: 'то, что накопилось', aria: 'Тёплая ветка', drift: '17.5s' },
+] as const;
+---
+
+<Base title="Undertow" branch={null}>
+  <div class="scene">
+    <header>
+      <div>
+        <div class="wordmark">Undertow</div>
+        <span class="wordmark-rule"></span>
+      </div>
+    </header>
+
+    <div class="field" id="field">
+      <div class="mandala">
+        <svg class="enso" viewBox="0 0 200 200" aria-hidden="true">
+          <path d="M 100 18 A 82 82 0 1 1 38 47" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round" opacity="0.14"></path>
+        </svg>
+
+        <div class="ripple" style="animation-delay:0s;"></div>
+        <div class="ripple" style="animation-delay:-3s;"></div>
+        <div class="ripple" style="animation-delay:-6s;"></div>
+        <div class="center-point"></div>
+
+        {
+          MARKS.map((m) => (
+            <a class="orb-wrap" id={m.id} href={m.href} aria-label={m.aria} data-branch={m.branch}>
+              <span class="orb-drift" style={`animation-duration:${m.drift}; --rest-offset:-${parseFloat(m.drift) / 2}s;`}>
+                <BrushMark branch={m.branch} size={m.size} class="orb" />
+              </span>
+              <span class="orb-label">{m.label}</span>
+            </a>
+          ))
+        }
+      </div>
+
+      <a class="placard" href="/colophon/" aria-label="Колофон">undertow &nbsp; 心</a>
+    </div>
+
+    <footer>
+      <div class="hint">Выберите точку</div>
+      <div class="hint">Undertow — 2026</div>
+    </footer>
+  </div>
+</Base>
+
+<style>
+  header {
+    position: relative;
+    z-index: 2;
+    padding: clamp(20px, 4vw, 44px) var(--pad-x) 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .field {
+    position: relative;
+    flex: 1;
+    z-index: 1;
+  }
+
+  footer {
+    position: relative;
+    z-index: 2;
+    padding: 0 var(--pad-x) var(--pad-y);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .placard {
+    bottom: 8%;
+    left: 6%;
+    pointer-events: auto;
+    transition: opacity var(--dur-micro) var(--ease-micro);
+  }
+  .placard:hover,
+  .placard:focus-visible {
+    opacity: 0.72;
+  }
+
+  /* мандала дышит целиком, еле-еле */
+  .mandala {
+    position: absolute;
+    inset: 0;
+    animation: mandala-breathe 12s var(--ease-amb) infinite;
+    --rest-offset: -6s;
+  }
+  @keyframes mandala-breathe {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.012);
+    }
+  }
+
+  .enso {
+    position: absolute;
+    pointer-events: none;
+    opacity: 0.4;
+    top: 50%;
+    left: 50%;
+    width: 64vmin;
+    height: 64vmin;
+    transform: translate(-50%, -50%);
+  }
+
+  /* тихая точка в центре — то, вокруг чего стоят пять настроений */
+  .center-point {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 7px;
+    height: 7px;
+    margin: -3.5px 0 0 -3.5px;
+    border-radius: 50%;
+    background: var(--ink);
+    opacity: 0.5;
+    animation: breathe 7s var(--ease-amb) infinite;
+    pointer-events: none;
+    --rest-offset: -3.5s;
+  }
+  @keyframes breathe {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.35;
+    }
+    50% {
+      transform: scale(1.8);
+      opacity: 0.6;
+    }
+  }
+
+  /* кольца-рябь расходятся от точки, как от одного удара по чаше */
+  .ripple {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1px;
+    height: 1px;
+    border-radius: 50%;
+    border: 1px solid var(--ink);
+    pointer-events: none;
+    animation: ripple-out 9s cubic-bezier(0.2, 0.7, 0.4, 1) infinite;
+    opacity: 0;
+    --rest-offset: -4.5s;
+  }
+  @keyframes ripple-out {
+    0% {
+      width: 1px;
+      height: 1px;
+      margin: 0;
+      opacity: 0.28;
+    }
+    85% {
+      opacity: 0;
+    }
+    100% {
+      width: 70vmin;
+      height: 70vmin;
+      margin: -35vmin 0 0 -35vmin;
+      opacity: 0;
+    }
+  }
+
+  .orb-wrap {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .orb-drift {
+    display: block;
+    animation: drift 16s var(--ease-amb) infinite;
+  }
+
+  .orb-wrap :global(.orb) {
+    transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .orb-wrap:hover :global(.orb),
+  .orb-wrap:focus-visible :global(.orb) {
+    transform: scale(1.07);
+  }
+  .orb-wrap:hover .orb-drift {
+    animation-play-state: paused;
+  }
+
+  .orb-label {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 12.5px;
+    letter-spacing: 0.1em;
+    color: var(--ink-dim);
+    opacity: 0;
+    transform: translateY(2px);
+    transition:
+      opacity 0.6s cubic-bezier(0.33, 0.02, 0.24, 1),
+      transform 0.6s cubic-bezier(0.33, 0.02, 0.24, 1);
+    white-space: nowrap;
+    text-align: center;
+  }
+  .orb-wrap:hover .orb-label,
+  .orb-wrap:focus-visible .orb-label {
+    opacity: 0.75;
+    transform: translateY(0);
+  }
+
+  /* чёрная метка признаётся неохотнее остальных — подпись приходит с запозданием */
+  #o-black .orb-label {
+    transition-delay: 260ms;
+  }
+
+  @keyframes drift {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(var(--dx, 4px), var(--dy, -6px));
+    }
+  }
+
+  /* пять меток вокруг тихого центра — белая в зените, чёрная у корня */
+  #o-white {
+    top: calc(50% - 27vmin);
+    left: 50%;
+    --dx: 3px;
+    --dy: -7px;
+  }
+  #o-blue {
+    top: calc(50% - 8.7vmin);
+    left: calc(50% + 25.7vmin);
+    --dx: 6px;
+    --dy: -4px;
+  }
+  #o-red {
+    top: calc(50% + 21.8vmin);
+    left: calc(50% + 15.9vmin);
+    --dx: -4px;
+    --dy: -5px;
+  }
+  #o-black {
+    top: calc(50% + 21.8vmin);
+    left: calc(50% - 15.9vmin);
+    --dx: 5px;
+    --dy: 5px;
+  }
+  #o-green {
+    top: calc(50% - 8.7vmin);
+    left: calc(50% - 25.7vmin);
+    --dx: -5px;
+    --dy: -6px;
+  }
+
+  @media (max-width: 640px) {
+    #o-white {
+      top: calc(50% - 24vmin);
+    }
+    #o-blue {
+      top: calc(50% - 7.7vmin);
+      left: calc(50% + 22.8vmin);
+    }
+    #o-red {
+      top: calc(50% + 19.4vmin);
+      left: calc(50% + 14.1vmin);
+    }
+    #o-black {
+      top: calc(50% + 19.4vmin);
+      left: calc(50% - 14.1vmin);
+    }
+    #o-green {
+      top: calc(50% - 7.7vmin);
+      left: calc(50% - 22.8vmin);
+    }
+    .orb-label {
+      font-size: 11.5px;
+    }
+  }
+</style>

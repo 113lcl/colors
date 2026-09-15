@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Undertow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500&family=Archivo:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#100e0c;
+    --ground-2:#17130f;
+    --ink:#e4ddcf;
+    --ink-dim:#83786a;
+    --hair:rgba(228,221,207,0.09);
+
+    --c-black:#6e5d7c;   /* чёрная ветка — сливовый, достаточно светлый, чтобы читаться на черноте */
+    --c-white:#ece4d3;   /* белая ветка — тёплая слоновая кость */
+    --c-green:#66815a;   /* зелёная ветка — насыщенный мох, не бледный */
+    --c-red:#a5544a;     /* красная ветка — обожжённая охра-кирпич */
+    --c-blue:#5c7a91;    /* синяя ветка — пыльный индиго */
+  }
+
+  *{box-sizing:border-box;}
+  html,body{
+    height:100%;
+    margin:0;
+    background:var(--ground);
+  }
+  body{
+    font-family:'Archivo', system-ui, -apple-system, sans-serif;
+    color:var(--ink);
+    overflow:hidden;
+    padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px);
+  }
+  [hidden]{display:none!important;}
+
+  .scene{
+    position:relative;
+    height:100%;
+    width:100%;
+    background:
+      radial-gradient(ellipse 70% 60% at 78% 18%, rgba(228,221,207,0.035), transparent 65%),
+      radial-gradient(ellipse 120% 90% at 50% 108%, var(--ground-2), transparent 60%),
+      var(--ground);
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* washi-paper grain, warm and dry rather than digital */
+  .grain{
+    position:absolute; inset:0; pointer-events:none; opacity:.09; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .vignette{
+    position:absolute; inset:0; pointer-events:none;
+    box-shadow: inset 0 0 24vw 5vw rgba(0,0,0,0.55);
+  }
+
+  /* enso — a single imperfect brush ring, drawn around the whole mandala */
+  .enso{
+    position:absolute;
+    pointer-events:none;
+    opacity:.4;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+  }
+
+  /* the still point at the centre — quiet awareness the five moods surround */
+  .center-point{
+    position:absolute;
+    top:50%; left:50%;
+    width:7px; height:7px;
+    margin:-3.5px 0 0 -3.5px;
+    border-radius:50%;
+    background:var(--ink);
+    opacity:.5;
+    animation: breathe 7s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes breathe{
+    0%,100%{ transform:scale(1); opacity:.35; }
+    50%{ transform:scale(1.8); opacity:.6; }
+  }
+
+  /* rings breathing outward from the still point, like a bowl struck once */
+  .ripple{
+    position:absolute;
+    top:50%; left:50%;
+    width:1px; height:1px;
+    border-radius:50%;
+    border:1px solid var(--ink);
+    pointer-events:none;
+    animation: ripple-out 9s cubic-bezier(.2,.7,.4,1) infinite;
+    opacity:0;
+  }
+  @keyframes ripple-out{
+    0%{ width:1px; height:1px; margin:0; opacity:.28; }
+    85%{ opacity:0; }
+    100%{ width:70vmin; height:70vmin; margin:-35vmin 0 0 -35vmin; opacity:0; }
+  }
+
+  /* the whole mandala breathes as one, barely */
+  .mandala{
+    position:absolute; inset:0;
+    animation: mandala-breathe 12s ease-in-out infinite;
+  }
+  @keyframes mandala-breathe{
+    0%,100%{ transform:scale(1); }
+    50%{ transform:scale(1.012); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .mandala, .center-point, .ripple{ animation:none; }
+  }
+
+  header{
+    position:relative; z-index:2;
+    padding: clamp(20px,4vw,44px) clamp(20px,5vw,56px) 0;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    flex-wrap:wrap; gap:8px;
+  }
+  .wordmark{
+    font-family:'Shippori Mincho', Georgia, serif;
+    font-weight:400;
+    font-size: clamp(19px, 2.2vw, 24px);
+    letter-spacing:0.08em;
+    color:var(--ink);
+    opacity:.9;
+  }
+  .wordmark-rule{
+    display:block;
+    width:30px; height:1px;
+    background:var(--hair);
+    margin-top:12px;
+  }
+
+  .placard{
+    position:absolute;
+    writing-mode: vertical-rl;
+    font-family:'Shippori Mincho', Georgia, serif;
+    font-size:11px;
+    letter-spacing:0.32em;
+    color:var(--ink-dim);
+    opacity:.4;
+    pointer-events:none;
+    z-index:2;
+  }
+
+  .field{
+    position:relative;
+    flex:1;
+    z-index:1;
+  }
+
+  .orb-wrap{
+    position:absolute;
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .orb-drift{
+    animation: drift 16s ease-in-out infinite;
+  }
+  /* a brushed ink spot — an actual painted circle (SVG), not a CSS blob:
+     one deliberate stroke with a wobble only a hand gives it, ink pooling
+     unevenly inside instead of a flat vector fill */
+  .orb{
+    display:block;
+    overflow:visible;
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    transition: transform .7s cubic-bezier(.2,.7,.2,1);
+  }
+  .orb-wrap:hover .orb, .orb-wrap:focus-visible .orb{
+    transform: scale(1.07);
+  }
+  .orb-label{
+    font-family:'Shippori Mincho', Georgia, serif;
+    font-weight:400;
+    font-size:12.5px;
+    letter-spacing:0.1em;
+    color:var(--ink-dim);
+    opacity:0;
+    transform:translateY(2px);
+    transition:opacity .6s ease, transform .6s ease;
+    white-space:nowrap;
+  }
+  .orb-wrap:hover .orb-label, .orb-wrap:focus-visible .orb-label{
+    opacity:.75;
+    transform:translateY(0);
+  }
+
+  @keyframes drift{
+    0%,100%{ transform: translate(0,0); }
+    50%{ transform: translate(var(--dx,4px), var(--dy,-6px)); }
+  }
+  .orb-wrap:hover .orb{ animation-play-state:paused; }
+
+  /* five brushed spots set evenly around the still centre — white at the crown, black at the root */
+  #o-white{ top:calc(50% - 27vmin); left:calc(50% + 0vmin); }
+  #o-blue{ top:calc(50% - 8.7vmin); left:calc(50% + 25.7vmin); }
+  #o-blue .orb-drift{ animation-duration:20s; }
+  #o-red{ top:calc(50% + 21.8vmin); left:calc(50% + 15.9vmin); }
+  #o-red .orb-drift{ animation-duration:9s; }
+  #o-black{ top:calc(50% + 21.8vmin); left:calc(50% - 15.9vmin); }
+  #o-green{ top:calc(50% - 8.7vmin); left:calc(50% - 25.7vmin); }
+
+  .orb-wrap{ transform:translate(-50%,-50%); }
+
+
+  footer{
+    position:relative; z-index:2;
+    padding: 0 clamp(20px,5vw,56px) clamp(18px,3vw,32px);
+    display:flex; justify-content:space-between; align-items:flex-end;
+    flex-wrap:wrap; gap:8px;
+  }
+  .hint{
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    opacity:.6;
+  }
+
+  @media (max-width: 640px){
+    #o-white{ top:calc(50% - 24vmin); }
+    #o-blue{ top:calc(50% - 7.7vmin); left:calc(50% + 22.8vmin); }
+    #o-red{ top:calc(50% + 19.4vmin); left:calc(50% + 14.1vmin); }
+    #o-black{ top:calc(50% + 19.4vmin); left:calc(50% - 14.1vmin); }
+    #o-green{ top:calc(50% - 7.7vmin); left:calc(50% - 22.8vmin); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .orb-drift{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="scene">
+  <div class="grain"></div>
+
+  <header>
+    <div>
+      <div class="wordmark">Undertow</div>
+      <span class="wordmark-rule"></span>
+    </div>
+  </header>
+
+  <div class="field" id="field">
+    <div class="mandala">
+      <svg class="enso" style="width:64vmin; height:64vmin;" viewBox="0 0 200 200" aria-hidden="true">
+        <path d="M 100 18 A 82 82 0 1 1 38 47" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linecap="round" opacity="0.14"/>
+      </svg>
+
+      <div class="ripple" style="animation-delay:0s;"></div>
+      <div class="ripple" style="animation-delay:-3s;"></div>
+      <div class="ripple" style="animation-delay:-6s;"></div>
+      <div class="center-point"></div>
+
+      <div class="orb-wrap" id="o-white" tabindex="0" aria-label="Спокойная ветка">
+        <div class="orb-drift">
+          <svg class="orb" width="50" height="50" viewBox="-130 -130 260 260">
+            <path d="M-72-78C-5-108 70-77 94-15C119 49 66 105 3 101C-58 98-105 48-92-16C-87-43-83-64-72-78Z" fill="none" stroke="var(--c-white)" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-91 15C-76 82-4 112 58 84" fill="none" stroke="var(--c-white)" stroke-width="19" stroke-linecap="round" opacity=".72"/>
+            <circle cx="-98" cy="40" r="5" fill="var(--c-white)"/><circle cx="-89" cy="59" r="3" fill="var(--c-white)"/>
+          </svg>
+        </div>
+        <div class="orb-label">выдохнуть</div>
+      </div>
+      <div class="orb-wrap" id="o-blue" tabindex="0" aria-label="Далёкая ветка">
+        <div class="orb-drift">
+          <svg class="orb" width="68" height="68" viewBox="-130 -130 260 260">
+            <path d="M7-100C73-98 111-34 91 31C75 84 10 110-45 85C-103 59-106-16-63-63C-42-86-20-101 7-100Z" fill="none" stroke="var(--c-blue)" stroke-width="45" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-74-23C-91 39-49 92 9 100C49 105 78 85 94 55" fill="none" stroke="var(--c-blue)" stroke-width="23" stroke-linecap="round" opacity=".74"/>
+            <circle cx="-85" cy="-42" r="5" fill="var(--c-blue)"/><circle cx="-96" cy="-24" r="3" fill="var(--c-blue)"/>
+          </svg>
+        </div>
+        <div class="orb-label">всё дальше</div>
+      </div>
+      <div class="orb-wrap" id="o-red" tabindex="0" aria-label="Напряжённая ветка">
+        <div class="orb-drift">
+          <svg class="orb" width="42" height="42" viewBox="-130 -130 260 260">
+            <path d="M-21-99C45-105 96-53 94 14C93 68 44 108-18 99C-85 89-112 24-82-39C-67-71-51-93-21-99Z" fill="none" stroke="var(--c-red)" stroke-width="49" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-56-69C-105-16-87 72-14 99" fill="none" stroke="var(--c-red)" stroke-width="15" stroke-linecap="round" opacity=".68"/>
+            <ellipse cx="9" cy="108" rx="10" ry="4" fill="var(--c-red)" transform="rotate(-14 9 108)"/>
+            <circle cx="31" cy="111" r="4" fill="var(--c-red)"/>
+          </svg>
+        </div>
+        <div class="orb-label">на секунду</div>
+      </div>
+      <div class="orb-wrap" id="o-black" tabindex="0" aria-label="Тревожная ветка">
+        <div class="orb-drift">
+          <svg class="orb" width="64" height="64" viewBox="-130 -130 260 260">
+            <path d="M-62-79C-5-113 72-82 95-25C121 39 70 100 8 103C-54 106-103 61-99-4C-97-37-85-65-62-79Z" fill="none" stroke="var(--c-black)" stroke-width="55" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-91 8C-79 77-6 116 59 83" fill="none" stroke="var(--c-black)" stroke-width="19" stroke-linecap="round" opacity=".75"/>
+            <path d="M-31-96C11-109 59-88 83-59" fill="none" stroke="var(--c-black)" stroke-width="12" stroke-linecap="round" opacity=".6"/>
+            <circle cx="-101" cy="32" r="6" fill="var(--c-black)"/><circle cx="-91" cy="50" r="3" fill="var(--c-black)"/>
+          </svg>
+        </div>
+      </div>
+      <div class="orb-wrap" id="o-green" tabindex="0" aria-label="Тёплая ветка">
+        <div class="orb-drift">
+          <svg class="orb" width="56" height="56" viewBox="-130 -130 260 260">
+            <path d="M-77-71C-17-106 57-82 83-31C112 27 73 93 13 101C-52 110-99 55-95-8C-93-35-88-57-77-71Z" fill="none" stroke="var(--c-green)" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-81 20C-57 85 17 111 67 65" fill="none" stroke="var(--c-green)" stroke-width="18" stroke-linecap="round" opacity=".7"/>
+            <circle cx="-92" cy="42" r="6" fill="var(--c-green)"/><circle cx="-83" cy="60" r="3" fill="var(--c-green)"/>
+          </svg>
+        </div>
+        <div class="orb-label">то, что накопилось</div>
+      </div>
+    </div>
+
+    <div class="placard" style="bottom:8%; left:6%;">undertow &nbsp; 心</div>
+  </div>
+
+  <footer>
+    <div class="hint">Выберите точку</div>
+    <div class="hint">Undertow — 2026</div>
+  </footer>
+
+  <div class="vignette"></div>
+</div>
+
+</body>
+</html>

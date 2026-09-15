@@ -1,0 +1,38 @@
+:root {
+  --ground: #100e0c;
+  --ground-2: #17130f;
+  --ink: #e4ddcf;
+  --ink-dim: #83786a;
+  --hair: rgba(228, 221, 207, 0.09);
+
+  --c-black: #6e5d7c;
+  --c-white: #ece4d3;
+  --c-green: #66815a;
+  --c-red: #a5544a;
+  --c-blue: #5c7a91;
+
+  --font-display: 'Shippori Mincho', 'Hiragino Mincho ProN', Georgia, serif;
+  --font-body: 'Archivo', system-ui, -apple-system, sans-serif;
+
+  --pad-x: clamp(20px, 5vw, 56px);
+  --pad-y: clamp(18px, 3vw, 32px);
+
+  /* Neutral fallback branch colour; every [data-branch] block overrides it. */
+  --branch: var(--ink);
+}
+
+[data-branch='white'] {
+  --branch: var(--c-white);
+}
+[data-branch='black'] {
+  --branch: var(--c-black);
+}
+[data-branch='green'] {
+  --branch: var(--c-green);
+}
+[data-branch='red'] {
+  --branch: var(--c-red);
+}
+[data-branch='blue'] {
+  --branch: var(--c-blue);
+}

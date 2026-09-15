@@ -1,0 +1,123 @@
+---
+/*
+  Оболочка комнаты: имя ветки на <html> (оттуда берётся грамматика движения),
+  тихая шапка с названием комнаты, слот под саму комнату и выходы.
+*/
+import Base from './Base.astro';
+import Exits from '../components/Exits.astro';
+import { getRoom, BRANCHES } from '../data/rooms.js';
+
+interface Props {
+  branch: 'white' | 'black' | 'green' | 'red' | 'blue';
+  slug: string;
+  scrollable?: boolean;
+}
+
+const { branch, slug, scrollable = false } = Astro.props;
+const room = getRoom(branch, slug);
+if (!room) throw new Error(`Нет такой комнаты: ${branch}/${slug}`);
+const branchInfo = BRANCHES[branch];
+---
+
+<Base title={`${room.title} — Undertow`} branch={branch} description={room.note} scrollable={scrollable}>
+  <div class="scene room" data-room={slug}>
+    <header class="room-head">
+      <a class="back-mark" href="/" aria-label="Вернуться к центру">
+        <span class="wordmark">Undertow</span>
+      </a>
+      <p class="room-name">
+        <span class="room-glyph" aria-hidden="true">{room.glyph}</span>
+        <span class="room-title-text">{room.title}</span>
+      </p>
+    </header>
+
+    <main class="room-body">
+      <slot />
+    </main>
+
+    <Exits branch={branch} slug={slug} />
+  </div>
+  <span class="sr-only">Ветка: {branchInfo.name}. {room.note}</span>
+</Base>
+
+<style>
+  .room {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .room-head {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    padding: clamp(18px, 3.5vw, 36px) var(--pad-x) 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    pointer-events: none;
+  }
+
+  .back-mark {
+    pointer-events: auto;
+    opacity: 0.5;
+    transition: opacity var(--dur-micro) var(--ease-micro);
+  }
+  .back-mark:hover,
+  .back-mark:focus-visible {
+    opacity: 0.85;
+  }
+  .back-mark .wordmark {
+    font-size: clamp(15px, 1.5vw, 17px);
+    letter-spacing: 0.14em;
+  }
+
+  .room-name {
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    color: var(--ink-dim);
+    opacity: 0;
+    animation: name-settle 2.6s var(--ease-state) 0.7s forwards;
+    --rest-offset: 0s;
+  }
+
+  @keyframes name-settle {
+    from {
+      opacity: 0;
+      transform: translateY(-3px);
+    }
+    to {
+      opacity: 0.52;
+      transform: translateY(0);
+    }
+  }
+
+  .room-glyph {
+    font-size: 13px;
+    color: var(--branch);
+    opacity: 0.8;
+  }
+
+  .room-body {
+    position: relative;
+    flex: 1;
+    display: flex;
+    z-index: 1;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  @media (max-width: 640px) {
+    .room-name {
+      font-size: 11px;
+      letter-spacing: 0.16em;
+    }
+  }
+</style>

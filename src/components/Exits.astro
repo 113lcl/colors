@@ -1,0 +1,40 @@
+---
+/*
+  Выходы из комнаты. Не меню и не навбар: две-три тихие метки, вшитые в низ
+  композиции, плюс всегда доступный путь обратно к центральной мандале.
+*/
+import { exitsFor } from '../data/rooms.js';
+
+interface Props {
+  branch: 'white' | 'black' | 'green' | 'red' | 'blue';
+  slug: string;
+}
+
+const { branch, slug } = Astro.props;
+const exits = exitsFor(branch, slug);
+---
+
+<nav class="exits" aria-label="Выходы из комнаты">
+  <div class="exit-group">
+    {
+      exits.map((e, i) => (
+        <a class="exit" href={e.href} style={`transition-delay:${i * 40}ms`}>
+          <span class="exit-glyph" aria-hidden="true">
+            {e.glyph}
+          </span>
+          <span>{e.title}</span>
+        </a>
+      ))
+    }
+  </div>
+  <a class="exit exit--center" href="/">к центру</a>
+</nav>
+
+<style>
+  .exit-glyph {
+    font-family: var(--font-display);
+    font-size: 11px;
+    opacity: 0.45;
+    letter-spacing: 0;
+  }
+</style>

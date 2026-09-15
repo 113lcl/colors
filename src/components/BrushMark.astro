@@ -1,0 +1,130 @@
+---
+/*
+  Кистевая метка ветки — настоящий мазок (неровный контур, лужицы туши,
+  отдельные брызги), а не CSS-градиент и не «шар». Один и тот же словарь форм
+  используется на главной и внутри комнат, чтобы ветка узнавалась по почерку.
+
+  <BrushMark branch="green" size={56} />
+*/
+interface Props {
+  branch: 'white' | 'black' | 'green' | 'red' | 'blue';
+  size?: number;
+  class?: string;
+  opacity?: number;
+}
+
+const { branch, size = 56, class: className = '', opacity } = Astro.props;
+
+const COLOUR = {
+  white: 'var(--c-white)',
+  black: 'var(--c-black)',
+  green: 'var(--c-green)',
+  red: 'var(--c-red)',
+  blue: 'var(--c-blue)',
+}[branch];
+---
+
+<svg
+  class={`brush brush--${branch} ${className}`}
+  width={size}
+  height={size}
+  viewBox="-130 -130 260 260"
+  style={opacity !== undefined ? `opacity:${opacity}` : undefined}
+  aria-hidden="true"
+>
+  {
+    branch === 'white' && (
+      <>
+        <path
+          d="M-72-78C-5-108 70-77 94-15C119 49 66 105 3 101C-58 98-105 48-92-16C-87-43-83-64-72-78Z"
+          fill="none"
+          stroke={COLOUR}
+          stroke-width="52"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <path d="M-91 15C-76 82-4 112 58 84" fill="none" stroke={COLOUR} stroke-width="19" stroke-linecap="round" opacity=".72" />
+        <circle cx="-98" cy="40" r="5" fill={COLOUR} />
+        <circle cx="-89" cy="59" r="3" fill={COLOUR} />
+      </>
+    )
+  }
+  {
+    branch === 'blue' && (
+      <>
+        <path
+          d="M7-100C73-98 111-34 91 31C75 84 10 110-45 85C-103 59-106-16-63-63C-42-86-20-101 7-100Z"
+          fill="none"
+          stroke={COLOUR}
+          stroke-width="45"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <path d="M-74-23C-91 39-49 92 9 100C49 105 78 85 94 55" fill="none" stroke={COLOUR} stroke-width="23" stroke-linecap="round" opacity=".74" />
+        <circle cx="-85" cy="-42" r="5" fill={COLOUR} />
+        <circle cx="-96" cy="-24" r="3" fill={COLOUR} />
+      </>
+    )
+  }
+  {
+    branch === 'red' && (
+      <>
+        <path
+          d="M-21-99C45-105 96-53 94 14C93 68 44 108-18 99C-85 89-112 24-82-39C-67-71-51-93-21-99Z"
+          fill="none"
+          stroke={COLOUR}
+          stroke-width="49"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <path d="M-56-69C-105-16-87 72-14 99" fill="none" stroke={COLOUR} stroke-width="15" stroke-linecap="round" opacity=".68" />
+        <ellipse cx="9" cy="108" rx="10" ry="4" fill={COLOUR} transform="rotate(-14 9 108)" />
+        <circle cx="31" cy="111" r="4" fill={COLOUR} />
+      </>
+    )
+  }
+  {
+    branch === 'black' && (
+      <>
+        <path
+          d="M-62-79C-5-113 72-82 95-25C121 39 70 100 8 103C-54 106-103 61-99-4C-97-37-85-65-62-79Z"
+          fill="none"
+          stroke={COLOUR}
+          stroke-width="55"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <path d="M-91 8C-79 77-6 116 59 83" fill="none" stroke={COLOUR} stroke-width="19" stroke-linecap="round" opacity=".75" />
+        <path d="M-31-96C11-109 59-88 83-59" fill="none" stroke={COLOUR} stroke-width="12" stroke-linecap="round" opacity=".6" />
+        <circle cx="-101" cy="32" r="6" fill={COLOUR} />
+        <circle cx="-91" cy="50" r="3" fill={COLOUR} />
+      </>
+    )
+  }
+  {
+    branch === 'green' && (
+      <>
+        <path
+          d="M-77-71C-17-106 57-82 83-31C112 27 73 93 13 101C-52 110-99 55-95-8C-93-35-88-57-77-71Z"
+          fill="none"
+          stroke={COLOUR}
+          stroke-width="42"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <path d="M-81 20C-57 85 17 111 67 65" fill="none" stroke={COLOUR} stroke-width="18" stroke-linecap="round" opacity=".7" />
+        <circle cx="-92" cy="42" r="6" fill={COLOUR} />
+        <circle cx="-83" cy="60" r="3" fill={COLOUR} />
+      </>
+    )
+  }
+</svg>
+
+<style>
+  .brush {
+    display: block;
+    overflow: visible;
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+  }
+</style>

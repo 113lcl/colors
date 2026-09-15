@@ -1,0 +1,282 @@
+@import './tokens.css';
+@import './motion.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--ground);
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  padding-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px);
+}
+
+body[data-scrollable='true'] {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--branch) 40%, transparent);
+  color: var(--ink);
+}
+
+/* ————— фокус: тонкое кольцо цвета ветки, без синего дефолта ————— */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 1px solid color-mix(in oklab, var(--branch) 70%, transparent);
+  outline-offset: 5px;
+  border-radius: 2px;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ————————————————— сцена ————————————————— */
+
+.scene {
+  position: relative;
+  min-height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(ellipse 70% 60% at 78% 18%, rgba(228, 221, 207, 0.035), transparent 65%),
+    radial-gradient(ellipse 120% 90% at 50% 108%, var(--ground-2), transparent 60%),
+    var(--ground);
+}
+
+/* washi — тёплое сухое зерно бумаги, не цифровой шум */
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.09;
+  mix-blend-mode: overlay;
+  z-index: 40;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 39;
+  box-shadow: inset 0 0 24vw 5vw rgba(0, 0, 0, 0.55);
+}
+
+/* ————————————————— типографика ————————————————— */
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(19px, 2.2vw, 24px);
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  opacity: 0.9;
+}
+
+.wordmark-rule {
+  display: block;
+  width: 30px;
+  height: 1px;
+  background: var(--hair);
+  margin-top: 12px;
+}
+
+.hint {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  opacity: 0.6;
+  font-family: var(--font-body);
+}
+
+.placard {
+  position: absolute;
+  writing-mode: vertical-rl;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  color: var(--ink-dim);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.room-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+
+/* ————— текст, проявляющийся по словам (приём 3) ————— */
+/*
+  Живёт здесь, а не в комнате: разметку создаёт общий модуль reveal-text.js,
+  значит и её оформление должно быть одно на весь сайт.
+*/
+.rv {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.18em);
+  filter: blur(3px);
+  transition:
+    opacity var(--dur-reveal, 900ms) var(--ease-state),
+    transform var(--dur-reveal, 900ms) var(--ease-state),
+    filter var(--dur-reveal, 900ms) var(--ease-state);
+  will-change: opacity, transform;
+}
+
+.rv.is-in {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rv {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* ————————————————— выходы из комнаты ————————————————— */
+/*
+  Никакого меню: выходы — это тихие метки, вшитые в композицию.
+  Появляются не сразу, чтобы первым делом читалась сама комната.
+*/
+.exits {
+  position: fixed;
+  left: var(--pad-x);
+  right: var(--pad-x);
+  bottom: var(--pad-y);
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  pointer-events: none;
+  opacity: 0;
+  animation: exits-settle 2.4s var(--ease-state, ease) 1.6s forwards;
+  --rest-offset: 0s;
+}
+
+@keyframes exits-settle {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.exits > * {
+  pointer-events: auto;
+}
+
+.exit-group {
+  display: flex;
+  gap: clamp(14px, 3vw, 30px);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.exit {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dim);
+  opacity: 0.62;
+  padding: 6px 2px;
+  transition:
+    opacity var(--dur-micro) var(--ease-micro),
+    transform var(--dur-micro) var(--ease-micro);
+  will-change: transform, opacity;
+}
+
+.exit::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--branch);
+  opacity: 0.75;
+  transform: scale(1);
+  transition: transform var(--dur-micro) var(--ease-micro);
+}
+
+.exit:hover,
+.exit:focus-visible {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.exit:hover::before,
+.exit:focus-visible::before {
+  transform: scale(1.9);
+}
+
+.exit--center {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: lowercase;
+  opacity: 0.4;
+}
+
+.exit--center::before {
+  background: var(--ink-dim);
+}
+
+@media (max-width: 640px) {
+  .exits {
+    gap: 10px;
+  }
+  .exit-group {
+    gap: 16px;
+  }
+  .exit {
+    font-size: 12px;
+  }
+}

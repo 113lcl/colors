@@ -1,0 +1,166 @@
+---
+import Base from '../layouts/Base.astro';
+import { BRANCHES, branchRooms, roomPath } from '../data/rooms.js';
+
+const order = ['white', 'green', 'blue', 'black', 'red'] as const;
+---
+
+<Base title="Колофон — Undertow" branch={null} scrollable={true}>
+  <div class="scene colophon">
+    <header>
+      <a href="/" class="wordmark-link" aria-label="Вернуться к центру">
+        <span class="wordmark">Undertow</span>
+        <span class="wordmark-rule"></span>
+      </a>
+    </header>
+
+    <main>
+      <p class="lede">
+        Пространство из пяти настроений. Ничего не нужно проходить и не нужно выигрывать —
+        только идти дальше, пока идётся.
+      </p>
+
+      <div class="cols">
+        {
+          order.map((b) => (
+            <section class="col" data-branch={b}>
+              <h2>
+                <span class="dot" aria-hidden="true" />
+                {BRANCHES[b].name}
+              </h2>
+              <p class="feel">{BRANCHES[b].feel}</p>
+              <ul>
+                {branchRooms(b).map((r) => (
+                  <li>
+                    <a href={roomPath(r.branch, r.slug)}>
+                      <span class="glyph" aria-hidden="true">
+                        {r.glyph}
+                      </span>
+                      {r.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))
+        }
+      </div>
+
+      <p class="foot">
+        Shippori Mincho и Archivo. Без аккаунтов, без сбора данных: пара комнат помнит вас
+        через localStorage вашего же браузера, и это всё.
+      </p>
+    </main>
+  </div>
+</Base>
+
+<style>
+  .colophon {
+    padding: clamp(22px, 5vw, 56px) var(--pad-x) clamp(40px, 8vw, 90px);
+    gap: clamp(30px, 6vw, 60px);
+  }
+
+  .wordmark-link {
+    display: inline-block;
+    opacity: 0.75;
+    transition: opacity var(--dur-micro) var(--ease-micro);
+  }
+  .wordmark-link:hover,
+  .wordmark-link:focus-visible {
+    opacity: 1;
+  }
+
+  main {
+    max-width: 1080px;
+    width: 100%;
+  }
+
+  .lede {
+    font-family: var(--font-display);
+    font-size: clamp(19px, 3.2vw, 31px);
+    line-height: 1.62;
+    color: var(--ink);
+    opacity: 0.88;
+    max-width: 22ch;
+    margin: 0 0 clamp(36px, 7vw, 76px);
+  }
+
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+    gap: clamp(24px, 4vw, 44px);
+  }
+
+  .col h2 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 14px;
+    letter-spacing: 0.14em;
+    margin: 0 0 4px;
+    color: var(--ink);
+    opacity: 0.85;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--branch);
+  }
+
+  .feel {
+    margin: 0 0 16px;
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+    color: var(--ink-dim);
+    opacity: 0.7;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  li a {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 9px;
+    font-family: var(--font-display);
+    font-size: 13.5px;
+    letter-spacing: 0.04em;
+    color: var(--ink-dim);
+    opacity: 0.78;
+    transition:
+      opacity var(--dur-micro) var(--ease-micro),
+      transform var(--dur-micro) var(--ease-micro);
+  }
+  li a:hover,
+  li a:focus-visible {
+    opacity: 1;
+    transform: translateX(3px);
+    color: var(--ink);
+  }
+
+  .glyph {
+    font-size: 11px;
+    color: var(--branch);
+    opacity: 0.75;
+  }
+
+  .foot {
+    margin: clamp(46px, 9vw, 96px) 0 0;
+    max-width: 44ch;
+    font-size: 11.5px;
+    line-height: 1.85;
+    letter-spacing: 0.06em;
+    color: var(--ink-dim);
+    opacity: 0.55;
+  }
+</style>

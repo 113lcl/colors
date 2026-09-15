@@ -1,0 +1,92 @@
+/*
+  Пять грамматик движения. Каждая ветка получает свой набор кривых и длительностей;
+  комнаты пользуются ТОЛЬКО этими переменными и никогда не пишут ease/linear напрямую.
+
+  --ease-micro  наведение, клик, фокус            (--dur-micro)
+  --ease-state  смена состояния внутри комнаты    (--dur-state)
+  --ease-amb    зацикленная атмосфера             (--dur-amb)
+  --stagger     базовый шаг рассинхронизации петель
+*/
+
+:root {
+  --ease-micro: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-state: cubic-bezier(0.22, 0.61, 0.24, 1);
+  --ease-amb: cubic-bezier(0.37, 0, 0.63, 1);
+  --dur-micro: 300ms;
+  --dur-state: 620ms;
+  --dur-amb: 12s;
+  --stagger: 1.7s;
+}
+
+/* Белая — медленно, плавно, без пружин и перелётов. */
+[data-branch='white'] {
+  --ease-micro: cubic-bezier(0.33, 0.02, 0.24, 1);
+  --ease-state: cubic-bezier(0.4, 0.01, 0.2, 1);
+  --ease-amb: cubic-bezier(0.42, 0, 0.58, 1);
+  --dur-micro: 380ms;
+  --dur-state: 780ms;
+  --dur-amb: 17s;
+  --stagger: 2.3s;
+}
+
+/* Чёрная — намеренно неровно: резкий провал в середине кривой, короткие
+   микро-задержки, которые не совпадают с ожиданием. Дёрганость здесь — фича. */
+[data-branch='black'] {
+  --ease-micro: cubic-bezier(0.86, 0, 0.07, 1);
+  --ease-state: cubic-bezier(0.95, 0.02, 0.32, 0.99);
+  --ease-amb: cubic-bezier(0.72, 0.04, 0.16, 0.98);
+  --dur-micro: 230ms;
+  --dur-state: 540ms;
+  --dur-amb: 11s;
+  --stagger: 0.79s;
+  --hitch: 90ms; /* микро-задержка перед реакцией — только в чёрной ветке */
+}
+
+/* Зелёная — мягкая пружина с небольшим перелётом, тёплая отзывчивость. */
+[data-branch='green'] {
+  --ease-micro: cubic-bezier(0.34, 1.36, 0.5, 1);
+  --ease-state: cubic-bezier(0.22, 1.18, 0.36, 1);
+  --ease-amb: cubic-bezier(0.45, 0.05, 0.4, 1);
+  --dur-micro: 330ms;
+  --dur-state: 640ms;
+  --dur-amb: 14s;
+  --stagger: 1.9s;
+}
+
+/* Красная — коротко, резко, с выраженным акцентом на выходе. Импульс. */
+[data-branch='red'] {
+  --ease-micro: cubic-bezier(0.16, 1.5, 0.3, 1);
+  --ease-state: cubic-bezier(0.2, 1.24, 0.32, 1);
+  --ease-amb: cubic-bezier(0.62, 0.02, 0.38, 1);
+  --dur-micro: 165ms;
+  --dur-state: 230ms;
+  --dur-amb: 5.5s;
+  --stagger: 0.43s;
+}
+
+/* Синяя — очень медленный дрейф, кривая почти без характера. */
+[data-branch='blue'] {
+  --ease-micro: cubic-bezier(0.45, 0.14, 0.55, 0.86);
+  --ease-state: cubic-bezier(0.42, 0.18, 0.58, 0.82);
+  --ease-amb: cubic-bezier(0.46, 0.2, 0.54, 0.8);
+  --dur-micro: 420ms;
+  --dur-state: 2400ms;
+  --dur-amb: 27s;
+  --stagger: 4.1s;
+}
+
+/*
+  Reduced-motion: анимация не обрывается в случайной точке, а замирает в середине
+  своего цикла — там, где элемент «в середине вдоха». Приём: paused + отрицательная
+  задержка, равная половине длительности петли. Каждый анимированный элемент задаёт
+  свой --rest-offset: calc(<своя длительность> / -2); дефолт ниже — запасной вариант.
+*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-play-state: paused !important;
+    animation-delay: var(--rest-offset, -6s) !important;
+    transition-duration: 1ms !important;
+  }
+}
