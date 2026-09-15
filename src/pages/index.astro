@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import BrushMark from '../components/BrushMark.astro';
+import { branchRooms } from '../data/rooms.js';
 
 const MARKS = [
   { id: 'o-white', branch: 'white', href: '/white/cloud/', size: 50, label: 'выдохнуть', aria: 'Спокойная ветка', drift: '16s' },
@@ -14,21 +15,20 @@ const MARKS = [
 <Base title="Undertow" branch={null}>
   <script>
     import { seenByBranch } from '../scripts/trace.js';
-    import { branchRooms } from '../data/rooms.js';
 
     /*
       Лужица проявляется не сразу: сначала мандала должна прочитаться как она есть,
       и только потом, уже на глазах, под метками проступает то, что накопилось.
+      Размер ветки приходит атрибутом со сборки — тянуть ради одного числа всю
+      карту сайта в браузер незачем.
     */
     const counts = seenByBranch();
-    const targets = document.querySelectorAll('.orb-wrap[data-branch]');
 
     setTimeout(() => {
-      for (const el of targets) {
-        const branch = el.dataset.branch;
-        const total = branchRooms(branch).length;
-        const seen = counts[branch] ?? 0;
+      for (const el of document.querySelectorAll('.orb-wrap[data-branch]')) {
+        const seen = counts[el.dataset.branch] ?? 0;
         if (!seen) continue;
+        const total = Number(el.dataset.rooms) || 4;
         el.style.setProperty('--visited', String(Math.min(seen / total, 1)));
       }
     }, 900);
@@ -55,7 +55,14 @@ const MARKS = [
 
         {
           MARKS.map((m) => (
-            <a class="orb-wrap" id={m.id} href={m.href} aria-label={m.aria} data-branch={m.branch}>
+            <a
+              class="orb-wrap"
+              id={m.id}
+              href={m.href}
+              aria-label={m.aria}
+              data-branch={m.branch}
+              data-rooms={branchRooms(m.branch).length}
+            >
               <span class="orb-drift" style={`animation-duration:${m.drift}; --rest-offset:-${parseFloat(m.drift) / 2}s;`}>
                 <span class="pool" aria-hidden="true"></span>
                 <BrushMark branch={m.branch} size={m.size} class="orb" />

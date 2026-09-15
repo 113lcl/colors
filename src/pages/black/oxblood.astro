@@ -20,7 +20,8 @@ import Room from '../../layouts/Room.astro';
     align-content: center;
     gap: clamp(20px, 3vw, 34px);
     overflow: hidden;
-    transition: opacity 120ms linear;
+    /* обрыв в пустоту берёт кривую ветки: у чёрной она проваливается в середине */
+    transition: opacity 120ms var(--ease-micro);
   }
 
   /* момент нуля: всё разом перестаёт быть — ни звука, ни движения, ни счёта */
