@@ -160,12 +160,21 @@ a {
   pointer-events: none;
   opacity: calc(var(--depth, 0) * var(--depth-strength, 0));
   background: var(--depth-wash, none);
+  /*
+    Верхняя и нижняя полосы остаются нетронутыми: там живут шапка и выходы, и
+    подмешивать под них свет — значит терять и без того тихий контраст подписей.
+    Сгущается середина кадра, то есть сама комната.
+  */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 13%, #000 85%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 13%, #000 85%, transparent 100%);
   transition: opacity 3.4s var(--ease-state);
   --rest-offset: 0s;
 }
 
 [data-branch='white'] .journey {
-  --depth-strength: 0.5;
+  /* белая осветляет фон, а не затемняет: при той же силе, что у остальных,
+     она съедала контраст и без того тихих подписей */
+  --depth-strength: 0.38;
   /* тише: свет расходится ровнее, углы перестают давить */
   --depth-wash: radial-gradient(ellipse 120% 90% at 50% 50%, color-mix(in oklab, var(--c-white) 9%, transparent), transparent 72%);
 }

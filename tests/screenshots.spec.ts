@@ -93,32 +93,29 @@ test.describe('портреты комнат', () => {
     и после того, как пройдены остальные три. Разница — это и есть «единое
     нарастающее путешествие» из брифа.
   */
-  test('нарастание в синей ветке', async ({ page }) => {
-    await page.goto('/blue/steel/');
-    await page.waitForTimeout(2600);
-    await page.screenshot({ path: 'screenshots/нарастание-синяя-начало.png' });
+  const JOURNEYS: Array<{ branch: string; name: string; rooms: string[] }> = [
+    { branch: 'white', name: 'белая', rooms: ['cloud', 'ivory', 'frost', 'sand'] },
+    { branch: 'green', name: 'зелёная', rooms: ['sage', 'mint', 'olive', 'chartreuse'] },
+    { branch: 'blue', name: 'синяя', rooms: ['deep', 'turquoise', 'dusk', 'steel'] },
+    { branch: 'black', name: 'чёрная', rooms: ['anthracite', 'aubergine', 'ash', 'oxblood'] },
+  ];
 
-    for (const path of ['/blue/deep/', '/blue/turquoise/', '/blue/dusk/', '/blue/steel/']) {
-      await page.goto(path);
-      await page.waitForTimeout(900);
-    }
-    await page.waitForTimeout(3400);
-    await page.screenshot({ path: 'screenshots/нарастание-синяя-глубже.png' });
-  });
+  for (const journey of JOURNEYS) {
+    test(`нарастание: ${journey.name} ветка`, async ({ page }) => {
+      const last = `/${journey.branch}/${journey.rooms[journey.rooms.length - 1]}/`;
 
-  /*
-    У чёрной ветки нарастание самое сильное — тьма подступает с краёв. Кадр на
-    полной глубине нужен, чтобы убедиться, что комната всё ещё читается: тревога
-    должна остаться на грани комфортной, а не выключить свет совсем.
-  */
-  test('нарастание в чёрной ветке', async ({ page }) => {
-    for (const path of ['/black/anthracite/', '/black/aubergine/', '/black/ash/', '/black/oxblood/']) {
-      await page.goto(path);
-      await page.waitForTimeout(900);
-    }
-    await page.waitForTimeout(3600);
-    await page.screenshot({ path: 'screenshots/нарастание-чёрная-глубже.png' });
-  });
+      await page.goto(last);
+      await page.waitForTimeout(2800);
+      await page.screenshot({ path: `screenshots/нарастание-${journey.name}-начало.png` });
+
+      for (const slug of journey.rooms) {
+        await page.goto(`/${journey.branch}/${slug}/`);
+        await page.waitForTimeout(900);
+      }
+      await page.waitForTimeout(3600);
+      await page.screenshot({ path: `screenshots/нарастание-${journey.name}-глубже.png` });
+    });
+  }
 
   for (const room of ROOMS) {
     test(`${room.branch}/${room.slug}`, async ({ page }) => {
