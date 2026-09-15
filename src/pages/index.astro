@@ -12,6 +12,28 @@ const MARKS = [
 ---
 
 <Base title="Undertow" branch={null}>
+  <script>
+    import { seenByBranch } from '../scripts/trace.js';
+    import { branchRooms } from '../data/rooms.js';
+
+    /*
+      Лужица проявляется не сразу: сначала мандала должна прочитаться как она есть,
+      и только потом, уже на глазах, под метками проступает то, что накопилось.
+    */
+    const counts = seenByBranch();
+    const targets = document.querySelectorAll('.orb-wrap[data-branch]');
+
+    setTimeout(() => {
+      for (const el of targets) {
+        const branch = el.dataset.branch;
+        const total = branchRooms(branch).length;
+        const seen = counts[branch] ?? 0;
+        if (!seen) continue;
+        el.style.setProperty('--visited', String(Math.min(seen / total, 1)));
+      }
+    }, 900);
+  </script>
+
   <div class="scene">
     <header>
       <div>
@@ -35,6 +57,7 @@ const MARKS = [
           MARKS.map((m) => (
             <a class="orb-wrap" id={m.id} href={m.href} aria-label={m.aria} data-branch={m.branch}>
               <span class="orb-drift" style={`animation-duration:${m.drift}; --rest-offset:-${parseFloat(m.drift) / 2}s;`}>
+                <span class="pool" aria-hidden="true"></span>
                 <BrushMark branch={m.branch} size={m.size} class="orb" />
               </span>
               <span class="orb-label">{m.label}</span>
@@ -193,7 +216,47 @@ const MARKS = [
 
   .orb-drift {
     display: block;
+    position: relative;
     animation: drift 16s var(--ease-amb) infinite;
+  }
+
+  /*
+    Лужица туши под меткой: копится от того, что в эту ветку заходили.
+    Не счётчик и не прогресс — числа нигде нет, потолок достигается незаметно,
+    ничего не открывается. Просто пространство помнит, что к нему возвращались.
+  */
+  .pool {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 210%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: calc(var(--visited, 0) * 0.5);
+    scale: calc(0.7 + var(--visited, 0) * 0.42);
+    background: radial-gradient(circle, color-mix(in oklab, var(--pool-colour, var(--ink)) 26%, transparent) 0%, transparent 62%);
+    filter: blur(6px);
+    transition:
+      opacity 2400ms var(--ease-state),
+      scale 2800ms var(--ease-state);
+  }
+
+  #o-white .pool {
+    --pool-colour: var(--c-white);
+  }
+  #o-blue .pool {
+    --pool-colour: var(--c-blue);
+  }
+  #o-red .pool {
+    --pool-colour: var(--c-red);
+  }
+  #o-black .pool {
+    --pool-colour: var(--c-black);
+  }
+  #o-green .pool {
+    --pool-colour: var(--c-green);
   }
 
   .orb-wrap :global(.orb) {

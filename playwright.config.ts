@@ -22,6 +22,8 @@ export default defineConfig({
     {
       name: 'desktop',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } },
+      // эти два набора осмысленны только в своей эмуляции и живут в своих проектах
+      testIgnore: /(reduced-motion|mobile)\.spec\.ts/,
     },
     {
       name: 'mobile',

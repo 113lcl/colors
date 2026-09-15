@@ -105,14 +105,15 @@ test.describe('приёмы комнат', () => {
     await page.goto('/blue/deep/');
 
     const shown = () => page.locator('#p1 .rv.is-in').count();
-    await page.waitForTimeout(1500);
+    const total = await page.locator('#p1 .rv').count();
+
+    // привязываться к абсолютным паузам нельзя: под нагрузкой таймеры уезжают.
+    // Важно другое — что слова приходят не разом, а прибавляются по одному
+    await expect.poll(shown, { timeout: 8000 }).toBeGreaterThan(0);
     const early = await shown();
+    expect(early, 'весь абзац проявился сразу').toBeLessThan(total);
 
-    await page.waitForTimeout(2500);
-    const later = await shown();
-
-    expect(early).toBeGreaterThan(0);
-    expect(later).toBeGreaterThan(early);
+    await expect.poll(shown, { timeout: 8000 }).toBeGreaterThan(early);
   });
 
   test('бирюзовый: слои смещаются вслед за курсором', async ({ page }) => {
@@ -196,6 +197,25 @@ test.describe('приёмы комнат', () => {
     await page.locator('#trigger').click();
     await expect(stage).toHaveAttribute('data-flip', 'on');
     await expect(stage).toHaveAttribute('data-flip', 'off', { timeout: 3000 });
+  });
+
+  test('след: посещённые комнаты оставляют лужицу под меткой своей ветки', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(1200);
+    expect(await page.locator('#o-white').evaluate((el) => el.style.getPropertyValue('--visited'))).toBe('');
+
+    await page.goto('/white/cloud/');
+    await page.goto('/white/ivory/');
+
+    await page.goto('/');
+    await expect
+      .poll(async () => Number(await page.locator('#o-white').evaluate((el) => el.style.getPropertyValue('--visited') || '0')), {
+        timeout: 6000,
+      })
+      .toBeGreaterThan(0);
+
+    // другие ветки при этом остаются чистыми
+    expect(await page.locator('#o-red').evaluate((el) => el.style.getPropertyValue('--visited'))).toBe('');
   });
 
   test('переход между комнатами поднимает тушевую пелену', async ({ page }) => {

@@ -38,6 +38,16 @@ const branchInfo = BRANCHES[branch];
     <Exits branch={branch} slug={slug} />
   </div>
   <span class="sr-only">Ветка: {branchInfo.name}. {room.note}</span>
+
+  <script>
+    // комната отмечает саму себя: на главной из этого собирается лужица туши.
+    // Ветка и слаг читаются из разметки, чтобы скрипт оставался общим и собираемым
+    import { remember } from '../scripts/trace.js';
+
+    const scene = document.querySelector('.room[data-room]');
+    const branch = document.documentElement.dataset.branch;
+    if (scene && branch) remember(branch, scene.dataset.room);
+  </script>
 </Base>
 
 <style>

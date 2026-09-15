@@ -171,11 +171,13 @@ import Room from '../../layouts/Room.astro';
   };
 
   render();
-  setCaption(CAPTIONS[0]);
 
-  if (!reduced()) start();
-  else {
-    // при reduced-motion счёт стоит: обрыв и мигание были бы здесь неуместны
+  if (!reduced()) {
+    setCaption(CAPTIONS[0]);
+    start();
+  } else {
+    // при reduced-motion счёт стоит: обрыв и мигание были бы здесь неуместны.
+    // setCaption здесь звать нельзя — его отложенная запись перетёрла бы подпись
     caption.textContent = 'отсчёт остановлен';
     caption.classList.add('is-in');
   }

@@ -76,7 +76,14 @@ while (queue.length) {
   }
 }
 
-const unreachable = [...pages.keys()].filter((r) => !dist.has(r));
+/*
+  Страница 404 недостижима по ссылкам по определению — на неё попадают только
+  по несуществующему адресу. Её исходящие ссылки проверяются как у всех, а из
+  проверки достижимости она исключена.
+*/
+const UNLINKED_BY_DESIGN = new Set(['/404/']);
+
+const unreachable = [...pages.keys()].filter((r) => !dist.has(r) && !UNLINKED_BY_DESIGN.has(r));
 const tooFar = [...dist.entries()].filter(([, d]) => d > MAX_HOPS_FROM_CENTRE);
 
 console.log(`\nСтраниц собрано: ${pages.size}`);

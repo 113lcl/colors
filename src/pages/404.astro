@@ -1,0 +1,102 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Здесь ничего нет — Undertow" branch={null}>
+  <div class="scene lost">
+    <a class="back-mark" href="/" aria-label="Вернуться к центру">
+      <span class="wordmark">Undertow</span>
+      <span class="wordmark-rule"></span>
+    </a>
+
+    <div class="middle">
+      <svg class="smear" viewBox="-120 -60 240 120" aria-hidden="true">
+        <path
+          d="M-96-14C-58-34-14 22 22 4C52-11 76-28 98-16"
+          fill="none"
+          stroke="var(--ink)"
+          stroke-width="7"
+          stroke-linecap="round"
+          opacity=".16"></path>
+        <circle cx="-104" cy="-6" r="3.5" fill="var(--ink)" opacity=".2"></circle>
+      </svg>
+
+      <h1>Эта комната не открылась.</h1>
+      <p>Возможно, её и не было. Отсюда всё равно можно вернуться к центру.</p>
+
+      <a class="exit exit--center" href="/">к центру</a>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .lost {
+    padding: clamp(22px, 5vw, 56px) var(--pad-x) clamp(28px, 5vw, 60px);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 6vh;
+  }
+
+  .back-mark {
+    opacity: 0.55;
+    justify-self: start;
+    transition: opacity var(--dur-micro) var(--ease-micro);
+  }
+  .back-mark:hover,
+  .back-mark:focus-visible {
+    opacity: 0.9;
+  }
+
+  .middle {
+    align-self: center;
+    justify-self: center;
+    text-align: center;
+    max-width: 34ch;
+    display: grid;
+    justify-items: center;
+    gap: clamp(14px, 2.4vw, 22px);
+  }
+
+  .smear {
+    width: clamp(180px, 34vmin, 320px);
+    margin-bottom: 8px;
+    animation: smear-settle 23s var(--ease-amb) infinite;
+    --rest-offset: -11.5s;
+  }
+
+  @keyframes smear-settle {
+    0%,
+    100% {
+      translate: 0 0;
+      opacity: 0.9;
+    }
+    50% {
+      translate: 4px -3px;
+      opacity: 1;
+    }
+  }
+
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(22px, 3.6vw, 34px);
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    opacity: 0.88;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.8;
+    letter-spacing: 0.04em;
+    color: var(--ink-dim);
+    opacity: 0.7;
+  }
+
+  .exit {
+    margin-top: clamp(10px, 2vw, 18px);
+    opacity: 0.55;
+  }
+</style>
