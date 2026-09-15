@@ -50,6 +50,40 @@ test.describe('каркас', () => {
     }
   });
 
+  test('по комнате можно пройти одной клавиатурой', async ({ page }) => {
+    await page.goto('/white/cloud/');
+    await page.waitForTimeout(4200);
+
+    /*
+      Меню на сайте нет, поэтому клавиатура — единственный способ найти выход
+      без мыши. Проверяется, что до выходов вообще доходит табуляция и что
+      фокус при этом видно: у фокусного кольца свой цвет ветки, а не дефолт.
+    */
+    const reached: string[] = [];
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press('Tab');
+      const info = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        if (!el || el === document.body) return null;
+        return { tag: el.tagName.toLowerCase(), cls: el.className?.toString() ?? '', href: el.getAttribute('href') };
+      });
+      if (info?.href) reached.push(info.href);
+      if (reached.length >= 3) break;
+    }
+
+    expect(reached.length, `табуляция дошла до: ${reached.join(', ')}`).toBeGreaterThanOrEqual(2);
+    expect(reached.some((h) => h.includes('/white/')), reached.join(', ')).toBe(true);
+
+    // Enter на выходе уводит в соседнюю комнату
+    const exit = page.locator('.exits .exit').first();
+    const href = await exit.getAttribute('href');
+    const before = page.url();
+    await exit.focus();
+    await page.keyboard.press('Enter');
+    await page.waitForURL((url) => url.href !== before, { timeout: 10_000 });
+    expect(page.url()).toContain(href!);
+  });
+
   test('у каждой комнаты есть выходы и путь к центру', async ({ page }) => {
     for (const room of ROOMS) {
       await page.goto(roomPath(room.branch, room.slug));

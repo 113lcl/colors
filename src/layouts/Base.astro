@@ -54,8 +54,13 @@ const ogImage = origin ? new URL(link('/og.png'), origin).href : null;
     {ogImage && <meta name="twitter:image" content={ogImage} />}
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    <!-- поднять пелену до первой отрисовки, чтобы приход в комнату не мигал фоном -->
     <script is:inline>
+      // Признак того, что скрипты вообще работают. Без него текст, который
+      // должен проявляться по словам, остался бы скрытым навсегда: прятать его
+      // до разбора имеет смысл только тогда, когда разбирать будет кому.
+      document.documentElement.classList.add('js');
+
+      // поднять пелену до первой отрисовки, чтобы приход в комнату не мигал фоном
       try {
         var v = sessionStorage.getItem('undertow:veil');
         if (v) {
