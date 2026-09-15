@@ -4,24 +4,153 @@ import Room from '../../layouts/Room.astro';
 
 <Room branch="green" slug="chartreuse">
   <div class="stage">
-    <p class="holding">Генеративный узор, каждый раз немного другой.</p>
+    <svg class="weave" id="weave" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+    <p class="seed-mark" id="seed-mark"></p>
+    <p class="sr-only">Узор, который заново складывается при каждой загрузке.</p>
   </div>
 </Room>
 
 <style>
   .stage {
     flex: 1;
+    position: relative;
     display: grid;
     place-items: center;
-    padding: 0 var(--pad-x);
+    overflow: hidden;
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
+
+  .weave {
+    position: absolute;
+    inset: -4%;
+    width: 108%;
+    height: 108%;
+    animation: weave-drift 88s var(--ease-amb) infinite;
+    --rest-offset: -44s;
+  }
+
+  @keyframes weave-drift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(1.4%, -1%, 0) scale(1.03);
+    }
+  }
+
+  /* каждый штрих всплывает своей пружиной — зелёная грамматика */
+  .weave :global(path) {
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    animation: stroke-bloom 1400ms var(--ease-state) forwards var(--delay), stroke-sway var(--sway) var(--ease-amb) var(--delay) infinite;
+  }
+
+  @keyframes stroke-bloom {
+    from {
+      opacity: 0;
+      transform: scale(0.55);
+    }
+    to {
+      opacity: var(--o);
+      transform: scale(1);
+    }
+  }
+
+  @keyframes stroke-sway {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: var(--dx) var(--dy);
+    }
+  }
+
+  .seed-mark {
+    position: absolute;
+    right: var(--pad-x);
+    bottom: calc(var(--pad-y) + 40px);
+    margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
+    font-size: 10.5px;
+    letter-spacing: 0.3em;
     color: var(--ink-dim);
-    opacity: 0.5;
+    opacity: 0;
+    transition: opacity 2200ms var(--ease-state);
+  }
+  .seed-mark.is-in {
+    opacity: 0.3;
+  }
+
+  @media (max-width: 640px) {
+    .seed-mark {
+      bottom: calc(var(--pad-y) + 64px);
+    }
   }
 </style>
+
+<script>
+  import { seededRandom, reduced } from '../../scripts/techniques/_util.js';
+
+  /*
+    Поле направлений из пары синусов: штрихи идут по нему, как трава по ветру,
+    но ничего не изображают — это просто течение. Seed новый на каждую загрузку,
+    поэтому узор каждый раз другой, и его номер видно в углу.
+  */
+  const seed = Math.floor(Math.random() * 9000) + 1000;
+  const rand = seededRandom(seed);
+
+  const W = 1000;
+  const H = 620;
+  const COUNT = reduced() ? 90 : 140;
+
+  const ax = 0.0052 + rand() * 0.004;
+  const ay = 0.0061 + rand() * 0.004;
+  const phase = rand() * Math.PI * 2;
+  const swirl = 0.7 + rand() * 1.5;
+
+  const angleAt = (x, y) => Math.sin(x * ax + phase) * swirl + Math.cos(y * ay - phase) * swirl;
+
+  const svg = document.getElementById('weave');
+  const ns = 'http://www.w3.org/2000/svg';
+  const frag = document.createDocumentFragment();
+
+  for (let i = 0; i < COUNT; i++) {
+    let x = rand() * W;
+    let y = rand() * H;
+    const steps = 3 + Math.floor(rand() * 4);
+    const step = 9 + rand() * 17;
+    const pts = [`M ${x.toFixed(1)} ${y.toFixed(1)}`];
+
+    for (let s = 0; s < steps; s++) {
+      const a = angleAt(x, y);
+      x += Math.cos(a) * step;
+      y += Math.sin(a) * step;
+      pts.push(`L ${x.toFixed(1)} ${y.toFixed(1)}`);
+    }
+
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', pts.join(' '));
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', 'var(--c-green)');
+    path.setAttribute('stroke-width', (0.8 + rand() * 2.4).toFixed(2));
+    path.setAttribute('stroke-linecap', 'round');
+
+    // разброс по задержкам и темпу: иначе сотня одинаковых петель читается как гифка
+    path.style.setProperty('--o', (0.1 + rand() * 0.28).toFixed(2));
+    path.style.setProperty('--delay', `${(rand() * 2.4).toFixed(2)}s`);
+    path.style.setProperty('--sway', `${(11 + rand() * 13).toFixed(1)}s`);
+    path.style.setProperty('--dx', `${(rand() * 8 - 4).toFixed(1)}px`);
+    path.style.setProperty('--dy', `${(rand() * 8 - 4).toFixed(1)}px`);
+    path.style.setProperty('--rest-offset', '-6s');
+
+    frag.appendChild(path);
+  }
+
+  svg.appendChild(frag);
+
+  const mark = document.getElementById('seed-mark');
+  mark.textContent = `узор ${seed}`;
+  setTimeout(() => mark.classList.add('is-in'), reduced() ? 0 : 2400);
+</script>

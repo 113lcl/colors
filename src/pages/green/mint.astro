@@ -4,7 +4,42 @@ import Room from '../../layouts/Room.astro';
 
 <Room branch="green" slug="mint">
   <div class="stage">
-    <p class="holding">Деталь мягко пружинит и дышит вслед за курсором.</p>
+    <div class="field">
+      <div class="drop" id="drop">
+        <svg viewBox="-120 -120 240 240" aria-hidden="true">
+          <path
+            class="outer"
+            d="M-58-66C-9-96 58-70 79-22C101 30 66 88 10 92C-46 96-92 54-86-6C-83-33-74-56-58-66Z"
+            fill="none"
+            stroke="var(--c-green)"
+            stroke-width="30"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            opacity=".62"></path>
+          <path class="inner" d="M-52 4C-44 52 3 78 48 56" fill="none" stroke="var(--c-green)" stroke-width="13" stroke-linecap="round" opacity=".5"></path>
+          <circle class="bead" cx="-84" cy="26" r="6" fill="var(--c-green)" opacity=".55"></circle>
+        </svg>
+      </div>
+
+      {
+        [
+          { x: 22, y: 28, s: 0.3, d: 13 },
+          { x: 76, y: 22, s: 0.22, d: 17 },
+          { x: 18, y: 74, s: 0.26, d: 15 },
+          { x: 82, y: 70, s: 0.19, d: 19 },
+          { x: 50, y: 12, s: 0.16, d: 21 },
+        ].map((s) => (
+          <span
+            class="satellite"
+            data-sat
+            style={`left:${s.x}%; top:${s.y}%; --s:${s.s}; --dur:${s.d}s; --rest-offset:-${s.d / 2}s;`}
+            aria-hidden="true"
+          />
+        ))
+      }
+    </div>
+
+    <p class="cue" id="cue">подойдите ближе</p>
   </div>
 </Room>
 
@@ -12,16 +47,107 @@ import Room from '../../layouts/Room.astro';
   .stage {
     flex: 1;
     display: grid;
-    place-items: center;
-    padding: 0 var(--pad-x);
+    grid-template-rows: 1fr auto;
+    padding: 10vh var(--pad-x) 15vh;
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
+
+  .field {
+    position: relative;
+    display: grid;
+    place-items: center;
+  }
+
+  .drop {
+    width: clamp(150px, 27vmin, 290px);
+    aspect-ratio: 1;
+    will-change: transform;
+  }
+
+  .drop svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+    /* дыхание живёт отдельно от притяжения: магнит двигает .drop, дыхание — svg внутри */
+    animation: drop-breathe 8.4s var(--ease-amb) infinite;
+    --rest-offset: -4.2s;
+  }
+
+  @keyframes drop-breathe {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.045);
+    }
+  }
+
+  /* мелкие спутники — им тоже передаётся близость курсора, но вчетверо слабее */
+  .satellite {
+    position: absolute;
+    width: 11px;
+    height: 11px;
+    margin: -5.5px 0 0 -5.5px;
+    border-radius: 50%;
+    background: var(--c-green);
+    opacity: calc(0.14 + var(--near, 0) * 0.34);
+    transform: scale(calc(var(--s) + var(--near, 0) * 0.5));
+    transition:
+      opacity 700ms var(--ease-state),
+      transform 900ms var(--ease-state);
+    animation: sat-drift var(--dur) var(--ease-amb) infinite;
+  }
+
+  @keyframes sat-drift {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 6px -9px;
+    }
+  }
+
+  .cue {
+    margin: 0;
+    justify-self: center;
     font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
+    font-size: 11.5px;
+    letter-spacing: 0.3em;
     color: var(--ink-dim);
-    opacity: 0.5;
+    opacity: 0.34;
+    transition: opacity 1100ms var(--ease-state);
+  }
+
+  .cue.is-quiet {
+    opacity: 0;
   }
 </style>
+
+<script>
+  import { magnetic } from '../../scripts/techniques/magnetic.js';
+  import { hasPointer } from '../../scripts/techniques/_util.js';
+
+  const drop = document.getElementById('drop');
+  const cue = document.getElementById('cue');
+  const sats = [...document.querySelectorAll('[data-sat]')];
+  const field = drop?.closest('.field');
+
+  if (drop && field) {
+    magnetic(drop, {
+      radius: 320,
+      pull: 0.34,
+      ease: 0.11,
+      maxOffset: 64,
+      breathe: 0.06,
+      onNear: (near) => {
+        field.style.setProperty('--near', near.toFixed(3));
+        cue?.classList.toggle('is-quiet', near > 0.25);
+      },
+    });
+  }
+
+  // на тач-устройствах подсказка про «подойти ближе» бессмысленна
+  if (!hasPointer() && cue) cue.textContent = 'просто побудьте';
+</script>

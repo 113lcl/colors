@@ -4,24 +4,148 @@ import Room from '../../layouts/Room.astro';
 
 <Room branch="green" slug="olive">
   <div class="stage">
-    <p class="holding">Сколько времени прошло с прошлого визита — тепло, а не как таймер.</p>
+    <span class="warmth" aria-hidden="true"></span>
+
+    <div class="text">
+      <p class="line" id="line">&nbsp;</p>
+      <p class="tail" id="tail">&nbsp;</p>
+    </div>
+
+    <svg class="thread" viewBox="0 0 600 120" aria-hidden="true">
+      <path
+        d="M20 74C96 44 152 92 226 66C300 40 348 88 420 62C468 45 520 70 580 52"
+        fill="none"
+        stroke="var(--c-green)"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        opacity=".34"></path>
+      <circle class="bead" cx="20" cy="74" r="4.5" fill="var(--c-green)" opacity=".6"></circle>
+    </svg>
   </div>
 </Room>
 
 <style>
   .stage {
     flex: 1;
+    position: relative;
     display: grid;
     place-items: center;
-    padding: 0 var(--pad-x);
+    padding: 12vh var(--pad-x) 16vh;
+    overflow: hidden;
   }
-  .holding {
-    max-width: 30ch;
+
+  /* тёплое пятно, как от лампы за кадром: не подсветка объекта, а температура комнаты */
+  .warmth {
+    position: absolute;
+    top: 46%;
+    left: 50%;
+    width: min(150vw, 1200px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    background: radial-gradient(circle, color-mix(in oklab, var(--c-green) 17%, transparent) 0%, transparent 58%);
+    opacity: 0.55;
+    animation: warmth-breathe 16s var(--ease-amb) infinite;
+    --rest-offset: -8s;
+  }
+
+  @keyframes warmth-breathe {
+    0%,
+    100% {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0.45;
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.09);
+      opacity: 0.62;
+    }
+  }
+
+  .text {
+    position: relative;
     text-align: center;
+    max-width: 24ch;
+  }
+
+  .line {
+    margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
+    font-size: clamp(23px, 4.6vw, 44px);
+    line-height: 1.45;
+    letter-spacing: 0.01em;
+    color: var(--c-green);
+    color: color-mix(in oklab, var(--c-green) 62%, var(--ink) 38%);
+    text-wrap: balance;
+  }
+
+  .tail {
+    margin: clamp(18px, 3vw, 30px) 0 0;
+    font-family: var(--font-display);
+    font-size: 12.5px;
+    letter-spacing: 0.2em;
     color: var(--ink-dim);
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 1600ms var(--ease-state),
+      transform 1600ms var(--ease-state);
+  }
+  .tail.is-in {
     opacity: 0.5;
+    transform: translateY(0);
+  }
+
+  /* нить с бусиной — время как непрерывная линия, а не как цифры на таймере */
+  .thread {
+    position: absolute;
+    bottom: 17%;
+    left: 50%;
+    width: min(62vw, 520px);
+    transform: translateX(-50%);
+    opacity: 0.8;
+  }
+
+  .thread .bead {
+    /* бусина медленно идёт по нити и возвращается — время идёт, но никуда не торопит */
+    animation: bead-travel 38s var(--ease-amb) infinite;
+    --rest-offset: -19s;
+  }
+
+  @keyframes bead-travel {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 560px -22px;
+    }
   }
 </style>
+
+<script>
+  import { sinceLastVisit } from '../../scripts/techniques/accumulate.js';
+  import { revealText } from '../../scripts/techniques/reveal-text.js';
+  import { reduced } from '../../scripts/techniques/_util.js';
+
+  const line = document.getElementById('line');
+  const tail = document.getElementById('tail');
+
+  const { first, phrase } = sinceLastVisit('olive');
+
+  /*
+    Тон намеренно тёплый, а не тревожный: комната рада, что вернулись, и ничего
+    не требует. Никаких «вас не было 3 дня 4 часа» — это был бы таймер.
+  */
+  const TAILS = {
+    first: 'заходите ещё, комната запомнит',
+    again: 'ничего не изменилось, и это хорошо',
+  };
+
+  line.textContent = first ? 'Вы здесь впервые.' : `Давно не виделись — ${phrase}.`;
+  line.dataset.text = line.textContent;
+
+  revealText(line, { unit: 'word', base: 132, startDelay: reduced() ? 0 : 700 });
+
+  tail.textContent = first ? TAILS.first : TAILS.again;
+  setTimeout(() => tail.classList.add('is-in'), reduced() ? 0 : 2600);
+</script>
