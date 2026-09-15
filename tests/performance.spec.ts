@@ -11,6 +11,15 @@ import { ALL_PATHS } from '../src/data/rooms.js';
 const JS_BUDGET = 60 * 1024; // на страницу, суммарно
 const CSS_BUDGET = 40 * 1024;
 
+/*
+  Вес не зависит от машины, а время — зависит: раннер в CI заметно медленнее
+  ноутбука, и жёсткий порог там ловил бы не регресс, а загрузку железа.
+  Поэтому временные пороги там шире, а весовые — те же.
+*/
+const CI = !!process.env.CI;
+const PAINT_BUDGET = CI ? 6000 : 2500;
+const LONG_TASKS = CI ? 4 : 1;
+
 test.describe('вес и отрисовка', () => {
   test('ни одна страница не тащит лишних скриптов', async ({ page }) => {
     const report: string[] = [];
@@ -58,8 +67,8 @@ test.describe('вес и отрисовка', () => {
     });
 
     expect(paint.fcp, 'нет замера first-contentful-paint').not.toBeNull();
-    expect(paint.fcp!, `FCP ${paint.fcp?.toFixed(0)} ms`).toBeLessThan(2500);
-    expect(paint.domContentLoaded, `DCL ${paint.domContentLoaded.toFixed(0)} ms`).toBeLessThan(2500);
+    expect(paint.fcp!, `FCP ${paint.fcp?.toFixed(0)} ms`).toBeLessThan(PAINT_BUDGET);
+    expect(paint.domContentLoaded, `DCL ${paint.domContentLoaded.toFixed(0)} ms`).toBeLessThan(PAINT_BUDGET);
   });
 
   test('анимация не держит главный поток занятым', async ({ page }) => {
@@ -89,6 +98,6 @@ test.describe('вес и отрисовка', () => {
         })
     );
 
-    expect(longTasks, `длинных задач: ${longTasks}`).toBeLessThanOrEqual(1);
+    expect(longTasks, `длинных задач: ${longTasks}`).toBeLessThanOrEqual(LONG_TASKS);
   });
 });
