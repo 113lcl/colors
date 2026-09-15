@@ -1,18 +1,17 @@
 ---
 import Room from '../../layouts/Room.astro';
+import BrushMark from '../../components/BrushMark.astro';
 ---
 
 <Room branch="red" slug="orange">
   <div class="stage">
     <div class="pulse-wrap">
       <span class="halo" aria-hidden="true"></span>
-      <svg class="blot" viewBox="-110 -110 220 220" aria-hidden="true">
-        <path
-          d="M-38-72C11-93 68-63 78-14C89 41 47 86-6 84C-58 82-92 38-84-16C-79-46-63-61-38-72Z"
-          fill="var(--c-red)"
-          opacity=".78"></path>
-        <path d="M-70-24C-84 26-52 71-4 78" fill="none" stroke="var(--c-red)" stroke-width="9" stroke-linecap="round" opacity=".5"></path>
-      </svg>
+      {/* та же кистевая метка, что и на мандале: залитый круг читался бы
+          светящимся шаром, а этого в проекте быть не должно */}
+      <span class="blot">
+        <BrushMark branch="red" size={260} />
+      </span>
       <span class="offbeat" aria-hidden="true"></span>
     </div>
 
@@ -37,10 +36,11 @@ import Room from '../../layouts/Room.astro';
   }
 
   .blot {
-    width: 100%;
-    height: 100%;
     display: block;
-    overflow: visible;
+    width: clamp(146px, 25vmin, 256px);
+    /* наклон разводит эту метку с такой же в жёлтой комнате: один словарь форм,
+       но два разных почерка */
+    rotate: 9deg;
     transform-origin: 50% 50%;
     /*
       Ровный пульс 1.15 с — чуть быстрее спокойного сердца. Нетерпение берётся
@@ -48,6 +48,11 @@ import Room from '../../layouts/Room.astro';
     */
     animation: beat 1.15s var(--ease-micro) infinite;
     --rest-offset: -0.575s;
+  }
+
+  .blot :global(svg) {
+    width: 100%;
+    height: auto;
   }
 
   @keyframes beat {
@@ -72,11 +77,12 @@ import Room from '../../layouts/Room.astro';
     }
   }
 
+  /* отзвук удара, а не подсветка объекта: слабее и шире самой метки */
   .halo {
     position: absolute;
-    inset: -34%;
+    inset: -30%;
     border-radius: 50%;
-    background: radial-gradient(circle, color-mix(in oklab, var(--c-red) 26%, transparent) 0%, transparent 62%);
+    background: radial-gradient(circle, color-mix(in oklab, var(--c-red) 13%, transparent) 0%, transparent 58%);
     animation: halo-beat 1.15s var(--ease-micro) infinite;
     --rest-offset: -0.575s;
   }
@@ -87,8 +93,8 @@ import Room from '../../layouts/Room.astro';
       opacity: 0.4;
     }
     9% {
-      scale: 1.06;
-      opacity: 0.75;
+      scale: 1.1;
+      opacity: 0.85;
     }
     46% {
       scale: 0.94;

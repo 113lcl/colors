@@ -1,20 +1,14 @@
 ---
 import Room from '../../layouts/Room.astro';
+import BrushMark from '../../components/BrushMark.astro';
 ---
 
 <Room branch="red" slug="yellow">
   <div class="stage" id="stage" data-flip="off">
     <button class="trigger" type="button" id="trigger">
+      {/* currentColor — чтобы метка переворачивалась вместе со сценой */}
       <span class="mark" aria-hidden="true">
-        <svg viewBox="-100 -100 200 200">
-          <path
-            d="M-30-66C14-84 62-56 70-12C79 38 42 76-6 74C-54 72-84 32-76-14C-71-43-53-57-30-66Z"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="26"
-            stroke-linecap="round"
-            stroke-linejoin="round"></path>
-        </svg>
+        <BrushMark branch="red" size={210} colour="currentColor" />
       </span>
       <span class="label">нажмите</span>
     </button>
@@ -83,11 +77,14 @@ import Room from '../../layouts/Room.astro';
 
   .mark {
     display: block;
-    width: clamp(110px, 21vmin, 210px);
+    width: clamp(96px, 17vmin, 168px);
+    /* наклон в другую сторону, чем у оранжевого: формы общие, почерк разный */
+    rotate: -23deg;
   }
 
-  .mark svg {
+  .mark :global(svg) {
     width: 100%;
+    height: auto;
     display: block;
     overflow: visible;
     transform-origin: 50% 50%;
@@ -109,7 +106,7 @@ import Room from '../../layouts/Room.astro';
   }
 
   /* сам удар: короткий и с акцентом — это красная грамматика в чистом виде */
-  .stage[data-flip='on'] .mark svg {
+  .stage[data-flip='on'] .mark :global(svg) {
     animation: mark-hit 230ms var(--ease-micro);
   }
 

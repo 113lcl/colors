@@ -11,17 +11,22 @@ interface Props {
   size?: number;
   class?: string;
   opacity?: number;
+  /* Чем красить. По умолчанию — цвет ветки; 'currentColor' нужен там, где
+     метка должна менять цвет вместе со сценой (вспышка в жёлтой комнате). */
+  colour?: string;
 }
 
-const { branch, size = 56, class: className = '', opacity } = Astro.props;
+const { branch, size = 56, class: className = '', opacity, colour } = Astro.props;
 
-const COLOUR = {
-  white: 'var(--c-white)',
-  black: 'var(--c-black)',
-  green: 'var(--c-green)',
-  red: 'var(--c-red)',
-  blue: 'var(--c-blue)',
-}[branch];
+const COLOUR =
+  colour ??
+  {
+    white: 'var(--c-white)',
+    black: 'var(--c-black)',
+    green: 'var(--c-green)',
+    red: 'var(--c-red)',
+    blue: 'var(--c-blue)',
+  }[branch];
 ---
 
 <svg
