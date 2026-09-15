@@ -106,6 +106,20 @@ test.describe('портреты комнат', () => {
     await page.screenshot({ path: 'screenshots/нарастание-синяя-глубже.png' });
   });
 
+  /*
+    У чёрной ветки нарастание самое сильное — тьма подступает с краёв. Кадр на
+    полной глубине нужен, чтобы убедиться, что комната всё ещё читается: тревога
+    должна остаться на грани комфортной, а не выключить свет совсем.
+  */
+  test('нарастание в чёрной ветке', async ({ page }) => {
+    for (const path of ['/black/anthracite/', '/black/aubergine/', '/black/ash/', '/black/oxblood/']) {
+      await page.goto(path);
+      await page.waitForTimeout(900);
+    }
+    await page.waitForTimeout(3600);
+    await page.screenshot({ path: 'screenshots/нарастание-чёрная-глубже.png' });
+  });
+
   for (const room of ROOMS) {
     test(`${room.branch}/${room.slug}`, async ({ page }) => {
       await page.goto(roomPath(room.branch, room.slug));
