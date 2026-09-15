@@ -194,9 +194,26 @@ test.describe('приёмы комнат', () => {
     const stage = page.locator('#stage');
 
     await expect(stage).toHaveAttribute('data-flip', 'off');
+
+    /*
+      Вспышка держится 190 мс — ловить её опросом атрибута ненадёжно: под
+      нагрузкой проверка успевает прийти уже после возврата. Поэтому смена
+      состояний записывается наблюдателем, поставленным до клика.
+    */
+    await page.evaluate(() => {
+      const el = document.getElementById('stage')!;
+      (window as any).__flips = [];
+      new MutationObserver(() => (window as any).__flips.push(el.getAttribute('data-flip'))).observe(el, {
+        attributes: true,
+        attributeFilter: ['data-flip'],
+      });
+    });
+
     await page.locator('#trigger').click();
-    await expect(stage).toHaveAttribute('data-flip', 'on');
-    await expect(stage).toHaveAttribute('data-flip', 'off', { timeout: 3000 });
+
+    await expect
+      .poll(async () => page.evaluate(() => (window as any).__flips as string[]), { timeout: 4000 })
+      .toEqual(['on', 'off']);
   });
 
   test('след: посещённые комнаты оставляют лужицу под меткой своей ветки', async ({ page }) => {

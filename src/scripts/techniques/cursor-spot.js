@@ -6,7 +6,7 @@
   cursorSpot(document.querySelector('.spot'), { ease: 0.08 });
 */
 
-import { onFrame, lerp, reduced, hasPointer } from './_util.js';
+import { onFrame, lerp, reduced } from './_util.js';
 
 export function cursorSpot(el, options = {}) {
   const {
@@ -22,8 +22,12 @@ export function cursorSpot(el, options = {}) {
 
   const centre = () => ({ x: innerWidth / 2, y: innerHeight / 2 });
 
-  // точка покоя — центр сцены: осмысленно, а не «там, где застало»
-  if (reduced() || !hasPointer()) {
+  /*
+    Без мыши приём не отключается: pointermove приходит и от пальца во время
+    ведения по экрану. Пятно просто ждёт первого движения, вместо того чтобы
+    на телефоне оставлять комнату мёртвой.
+  */
+  if (reduced()) {
     const p = restAt === 'center' ? centre() : restAt;
     el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50%, -50%) scale(${scale})`;
     el.style.opacity = '1';

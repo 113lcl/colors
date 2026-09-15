@@ -45,6 +45,23 @@ test.describe('узкий экран', () => {
     }
   });
 
+  test('комнаты с курсором отвечают на палец, а не выключаются', async ({ page }) => {
+    await page.goto('/black/anthracite/');
+    await expect(page.locator('#line')).toContainText('пальцем');
+
+    await page.locator('.stage').hover({ position: { x: 80, y: 200 } });
+    await page.mouse.down();
+    await page.mouse.move(240, 420, { steps: 8 });
+    await page.mouse.up();
+
+    await expect
+      .poll(async () => Number(await page.locator('#trail').evaluate((el) => getComputedStyle(el).opacity)), { timeout: 4000 })
+      .toBeGreaterThan(0);
+
+    const transform = await page.locator('#trail').evaluate((el) => el.style.transform);
+    expect(transform).toContain('translate3d');
+  });
+
   test('главная: пять меток помещаются в мандалу', async ({ page }) => {
     await page.goto('/');
     await page.waitForTimeout(600);

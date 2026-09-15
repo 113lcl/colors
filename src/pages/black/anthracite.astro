@@ -90,8 +90,9 @@ import Room from '../../layouts/Room.astro';
 
   const trail = document.getElementById('trail');
   const ghost = document.getElementById('ghost');
+  const line = document.getElementById('line');
 
-  if (hasPointer() && !reduced()) {
+  if (!reduced()) {
     const spot = cursorSpot(trail, {
       ease: 0.19, // след идёт заметно позади руки, но всё ещё за ней
       ghost,
@@ -118,7 +119,10 @@ import Room from '../../layouts/Room.astro';
       },
       { once: true, passive: true }
     );
-  } else if (reduced()) {
+
+    // на телефоне след появляется при ведении пальцем, и фраза говорит об этом
+    if (!hasPointer()) line.textContent = 'Проведите пальцем.';
+  } else {
     // точка покоя: два указателя стоят рядом, но не совпадают — неуют остаётся,
     // движения нет
     trail.style.opacity = '0.5';
