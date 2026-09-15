@@ -5,7 +5,7 @@
 */
 import Base from './Base.astro';
 import Exits from '../components/Exits.astro';
-import { getRoom, BRANCHES } from '../data/rooms.js';
+import { getRoom, BRANCHES, branchRooms } from '../data/rooms.js';
 
 interface Props {
   branch: 'white' | 'black' | 'green' | 'red' | 'blue';
@@ -17,10 +17,12 @@ const { branch, slug, scrollable = false } = Astro.props;
 const room = getRoom(branch, slug);
 if (!room) throw new Error(`Нет такой комнаты: ${branch}/${slug}`);
 const branchInfo = BRANCHES[branch];
+const branchSize = branchRooms(branch).length;
 ---
 
 <Base title={`${room.title} — Undertow`} branch={branch} description={room.note} scrollable={scrollable}>
-  <div class="scene room" data-room={slug}>
+  <div class="scene room" data-room={slug} data-branch-size={branchSize}>
+    <span class="journey" aria-hidden="true"></span>
     <header class="room-head">
       <a class="back-mark" href="/" aria-label="Вернуться к центру">
         <span class="wordmark">Undertow</span>
@@ -40,13 +42,26 @@ const branchInfo = BRANCHES[branch];
   <span class="sr-only">Ветка: {branchInfo.name}. {room.note}</span>
 
   <script>
-    // комната отмечает саму себя: на главной из этого собирается лужица туши.
-    // Ветка и слаг читаются из разметки, чтобы скрипт оставался общим и собираемым
+    /*
+      Комната отмечает саму себя дважды: в долгой памяти (лужица туши под меткой
+      ветки на главной) и в памяти этого захода (нарастание внутри ветки).
+      Ветка, слаг и размер ветки читаются из разметки, чтобы скрипт оставался
+      общим и собираемым.
+    */
     import { remember } from '../scripts/trace.js';
+    import { advance } from '../scripts/journey.js';
 
     const scene = document.querySelector('.room[data-room]');
     const branch = document.documentElement.dataset.branch;
-    if (scene && branch) remember(branch, scene.dataset.room);
+
+    if (scene && branch) {
+      remember(branch, scene.dataset.room);
+
+      const depth = advance(branch, scene.dataset.room, Number(scene.dataset.branchSize) || 4);
+      // ставится не в первом кадре: сгущение должно проступить на глазах,
+      // а не встретить готовым — иначе нарастания не заметить
+      setTimeout(() => document.documentElement.style.setProperty('--depth', String(depth)), 700);
+    }
   </script>
 </Base>
 

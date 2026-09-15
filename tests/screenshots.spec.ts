@@ -22,6 +22,24 @@ test.describe('портреты комнат', () => {
     await page.screenshot({ path: 'screenshots/01-колофон.png' });
   });
 
+  /*
+    Пара кадров про нарастание: одна и та же комната в начале блуждания по ветке
+    и после того, как пройдены остальные три. Разница — это и есть «единое
+    нарастающее путешествие» из брифа.
+  */
+  test('нарастание в синей ветке', async ({ page }) => {
+    await page.goto('/blue/steel/');
+    await page.waitForTimeout(2600);
+    await page.screenshot({ path: 'screenshots/нарастание-синяя-начало.png' });
+
+    for (const path of ['/blue/deep/', '/blue/turquoise/', '/blue/dusk/', '/blue/steel/']) {
+      await page.goto(path);
+      await page.waitForTimeout(900);
+    }
+    await page.waitForTimeout(3400);
+    await page.screenshot({ path: 'screenshots/нарастание-синяя-глубже.png' });
+  });
+
   for (const room of ROOMS) {
     test(`${room.branch}/${room.slug}`, async ({ page }) => {
       await page.goto(roomPath(room.branch, room.slug));

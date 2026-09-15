@@ -144,6 +144,52 @@ a {
   color: var(--ink);
 }
 
+/* ————————————————— нарастание внутри ветки ————————————————— */
+/*
+  --depth (0..1) выставляет journey.js по числу пройденных комнат ветки за этот
+  заход. Сгущается не «громкость вообще», а то, чем ветка живёт: белая тише,
+  зелёная теплее, синяя дальше, чёрная плотнее. У красной нарастания нет —
+  независимые вспышки, --depth там всегда 0.
+
+  Слой поверх сцены, но под зерном и виньеткой, чтобы не спорить с ними.
+*/
+.journey {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  opacity: calc(var(--depth, 0) * var(--depth-strength, 0));
+  background: var(--depth-wash, none);
+  transition: opacity 3.4s var(--ease-state);
+  --rest-offset: 0s;
+}
+
+[data-branch='white'] .journey {
+  --depth-strength: 0.5;
+  /* тише: свет расходится ровнее, углы перестают давить */
+  --depth-wash: radial-gradient(ellipse 120% 90% at 50% 50%, color-mix(in oklab, var(--c-white) 9%, transparent), transparent 72%);
+}
+
+[data-branch='green'] .journey {
+  --depth-strength: 0.6;
+  /* теплее: источник тепла поднимается снизу */
+  --depth-wash: radial-gradient(ellipse 130% 80% at 50% 108%, color-mix(in oklab, var(--c-green) 20%, transparent), transparent 66%);
+}
+
+[data-branch='blue'] .journey {
+  --depth-strength: 0.72;
+  /* дальше: верх уходит в холод, низ темнеет */
+  --depth-wash:
+    linear-gradient(to bottom, color-mix(in oklab, var(--c-blue) 12%, transparent) 0%, transparent 38%),
+    radial-gradient(ellipse 100% 70% at 50% 100%, rgba(0, 0, 0, 0.5), transparent 62%);
+}
+
+[data-branch='black'] .journey {
+  --depth-strength: 0.8;
+  /* плотнее: тьма подступает с краёв, центр остаётся, но сужается */
+  --depth-wash: radial-gradient(ellipse 78% 68% at 50% 50%, transparent 28%, rgba(0, 0, 0, 0.62) 92%);
+}
+
 /* ————— текст, проявляющийся по словам (приём 3) ————— */
 /*
   Живёт здесь, а не в комнате: разметку создаёт общий модуль reveal-text.js,

@@ -216,6 +216,28 @@ test.describe('приёмы комнат', () => {
       .toEqual(['on', 'off']);
   });
 
+  test('нарастание: ветка сгущается по мере блуждания, красная — нет', async ({ page }) => {
+    const depth = () => page.locator('html').evaluate((el) => Number(el.style.getPropertyValue('--depth') || '0'));
+
+    await page.goto('/blue/deep/');
+    await expect.poll(depth, { timeout: 4000 }).toBe(0); // первая комната — ещё не путешествие
+
+    await page.goto('/blue/turquoise/');
+    const second = await new Promise<number>((r) => setTimeout(async () => r(await depth()), 1400));
+    expect(second).toBeGreaterThan(0);
+
+    await page.goto('/blue/steel/');
+    await expect.poll(depth, { timeout: 4000 }).toBeGreaterThan(second);
+
+    // у красной ветки нарастания нет по замыслу: независимые вспышки
+    await page.goto('/red/orange/');
+    await page.waitForTimeout(1200);
+    expect(await depth()).toBe(0);
+    await page.goto('/red/violet/');
+    await page.waitForTimeout(1200);
+    expect(await depth()).toBe(0);
+  });
+
   test('след: посещённые комнаты оставляют лужицу под меткой своей ветки', async ({ page }) => {
     await page.goto('/');
     await page.waitForTimeout(1200);
