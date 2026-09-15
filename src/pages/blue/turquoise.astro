@@ -9,17 +9,29 @@ import Room from '../../layouts/Room.astro';
 const LAYERS = [0, 1, 2, 3, 4].map((i) => ({
   depth: 0.18 + i * 0.22,
   y: 14 + i * 17,
-  opacity: (0.3 - i * 0.045).toFixed(2),
+  opacity: (0.42 - i * 0.05).toFixed(2),
   dur: (24 + i * 9).toFixed(0),
-  lines: Array.from({ length: 7 }, (_, k) => ({
-    y: k * 14 + (i % 2) * 5,
-    w: 18 + ((i * 31 + k * 17) % 44),
-    x: ((i * 23 + k * 41) % 74) - 4,
-    h: (0.6 + ((i * 7 + k * 13) % 9) / 9).toFixed(2),
-    o: (0.45 + ((i * 11 + k * 5) % 11) / 20).toFixed(2),
-    dur: (17 + ((i * 9 + k * 23) % 21)).toFixed(0),
-    delay: ((i * 13 + k * 7) % 19).toFixed(0),
-  })),
+  /*
+    Блик — не отрезок, а пологая волна: прямые полосы читаются строчками
+    развёртки, а не отражением. Амплитуда меньше единицы по вертикали, поэтому
+    рябь остаётся рябью и не превращается в узор.
+  */
+  lines: Array.from({ length: 6 }, (_, k) => {
+    const y = k * 16 + (i % 2) * 6;
+    const w = 16 + ((i * 31 + k * 17) % 46);
+    const x = ((i * 23 + k * 41) % 72) - 4;
+    // амплитуда в единицах viewBox: по вертикали слой сжат почти в шестьдесят
+    // раз (preserveAspectRatio="none"), поэтому волна должна быть крупной
+    const amp = 3.4 + ((i * 5 + k * 11) % 7) * 0.9;
+    const seg = w / 4;
+    return {
+      d: `M${x} ${y} q${seg / 2} ${-amp} ${seg} 0 t${seg} 0 t${seg} 0 t${seg} 0`,
+      h: (0.55 + ((i * 7 + k * 13) % 9) / 9).toFixed(2),
+      o: (0.45 + ((i * 11 + k * 5) % 11) / 20).toFixed(2),
+      dur: (17 + ((i * 9 + k * 23) % 21)).toFixed(0),
+      delay: ((i * 13 + k * 7) % 19).toFixed(0),
+    };
+  }),
 }));
 ---
 
@@ -36,14 +48,14 @@ const LAYERS = [0, 1, 2, 3, 4].map((i) => ({
               style={`--dur:${layer.dur}s; --rest-offset:-${Number(layer.dur) / 2}s;`}
             >
               {layer.lines.map((l) => (
-                <rect
+                <path
                   class="glimmer"
-                  x={l.x}
-                  y={l.y}
-                  width={l.w}
-                  height={l.h}
-                  rx={Number(l.h) / 2}
-                  fill="var(--c-blue)"
+                  d={l.d}
+                  fill="none"
+                  stroke="var(--c-blue)"
+                  stroke-width={l.h}
+                  stroke-linecap="round"
+                  vector-effect="non-scaling-stroke"
                   opacity={l.o}
                   style={`--dur:${l.dur}s; --delay:-${l.delay}s; --rest-offset:-${Number(l.dur) / 2}s;`}
                 />
