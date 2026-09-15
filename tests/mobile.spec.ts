@@ -62,6 +62,22 @@ test.describe('узкий экран', () => {
     expect(transform).toContain('translate3d');
   });
 
+  test('кадры узкого экрана', async ({ page }) => {
+    const shots: Array<[string, string]> = [
+      ['/', 'мобильный-центр'],
+      ['/white/ivory/', 'мобильный-слоновая-кость'],
+      ['/red/pink/', 'мобильный-розовый'],
+      ['/blue/steel/', 'мобильный-стальной'],
+      ['/colophon/', 'мобильный-колофон'],
+    ];
+
+    for (const [path, name] of shots) {
+      await page.goto(path);
+      await page.waitForTimeout(4200);
+      await page.screenshot({ path: `screenshots/${name}.png` });
+    }
+  });
+
   test('главная: пять меток помещаются в мандалу', async ({ page }) => {
     await page.goto('/');
     await page.waitForTimeout(600);
