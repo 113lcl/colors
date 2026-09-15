@@ -14,6 +14,22 @@ const MARKS = [
 ---
 
 <Base title="Undertow" branch={null}>
+  <script is:inline>
+    /*
+      Первый приход за сессию мандала не встречает готовой, а собирается на
+      глазах: сначала тихая точка, потом кольцо, потом пять меток по очереди.
+      Дальше в этой же сессии — сразу, чтобы возвращение к центру между комнатами
+      не превращалось в заставку. Флаг ставится до отрисовки, иначе метки успели
+      бы мигнуть на своих местах.
+    */
+    try {
+      if (!sessionStorage.getItem('undertow:entered')) {
+        document.documentElement.setAttribute('data-first', '');
+        sessionStorage.setItem('undertow:entered', '1');
+      }
+    } catch (e) {}
+  </script>
+
   <script>
     import { seenByBranch } from '../scripts/trace.js';
 
@@ -122,6 +138,85 @@ const MARKS = [
   .placard:hover,
   .placard:focus-visible {
     opacity: 0.72;
+  }
+
+  /*
+    Сборка мандалы при первом приходе. Порядок: точка — кольцо — метки по одной,
+    от белой по часовой. Каждой задан свой --rest-offset за конец анимации,
+    иначе без движения композиция замерла бы несобранной.
+  */
+  :global(html[data-first]) .center-point,
+  :global(html[data-first]) .enso,
+  :global(html[data-first]) .orb-wrap {
+    animation-name: enter-settle;
+    animation-duration: 1.6s;
+    animation-timing-function: cubic-bezier(0.22, 0.61, 0.24, 1);
+    animation-fill-mode: backwards;
+  }
+
+  /* у точки своя петля дыхания: её нельзя затирать, поэтому обе анимации разом */
+  :global(html[data-first]) .center-point {
+    animation:
+      enter-settle 1.6s cubic-bezier(0.22, 0.61, 0.24, 1) 0.25s backwards,
+      breathe 7s var(--ease-amb) 1.85s infinite;
+    --rest-offset: -2s;
+  }
+  :global(html[data-first]) .enso {
+    animation-delay: 0.9s;
+    --rest-offset: -2.6s;
+  }
+  :global(html[data-first]) #o-white {
+    animation-delay: 1.7s;
+    --rest-offset: -3.4s;
+  }
+  :global(html[data-first]) #o-blue {
+    animation-delay: 2.1s;
+    --rest-offset: -3.8s;
+  }
+  :global(html[data-first]) #o-red {
+    animation-delay: 2.5s;
+    --rest-offset: -4.2s;
+  }
+  :global(html[data-first]) #o-black {
+    animation-delay: 2.9s;
+    --rest-offset: -4.6s;
+  }
+  :global(html[data-first]) #o-green {
+    animation-delay: 3.3s;
+    --rest-offset: -5s;
+  }
+
+  /*
+    Метки и энсо уже стоят на translate(-50%,-50%) — собственный transform
+    анимации его бы стёр, поэтому появление идёт по opacity и scale отдельным
+    свойством: scale не конфликтует с transform.
+  */
+  @keyframes enter-settle {
+    from {
+      opacity: 0;
+      scale: 0.72;
+    }
+    to {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+
+  /* дыхание и дрейф ждут, пока композиция соберётся */
+  :global(html[data-first]) .mandala {
+    animation-delay: 3.9s;
+  }
+  :global(html[data-first]) .orb-drift {
+    animation-delay: 4.2s;
+  }
+  :global(html[data-first]) .ripple {
+    animation-delay: 1.2s;
+  }
+  :global(html[data-first]) .ripple:nth-of-type(2) {
+    animation-delay: 4.2s;
+  }
+  :global(html[data-first]) .ripple:nth-of-type(3) {
+    animation-delay: 7.2s;
   }
 
   /* мандала дышит целиком, еле-еле */

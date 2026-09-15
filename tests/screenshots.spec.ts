@@ -12,8 +12,17 @@ test.describe('портреты комнат', () => {
 
   test('центр', async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(3200);
+    // при первом приходе мандала собирается около пяти секунд — кадр нужен
+    // после того, как встала последняя метка
+    await page.waitForTimeout(6400);
     await page.screenshot({ path: 'screenshots/00-центр.png' });
+  });
+
+  /* и кадр посреди самой сборки: её видно только в первую секунду за сессию */
+  test('центр собирается', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(2600);
+    await page.screenshot({ path: 'screenshots/00-центр-собирается.png' });
   });
 
   test('колофон', async ({ page }) => {
