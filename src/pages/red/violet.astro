@@ -4,9 +4,11 @@ import Room from '../../layouts/Room.astro';
 
 <Room branch="red" slug="violet">
   <div class="stage" id="stage">
+    {/* подпись стоит НАД числом: в чёрной ветке отсчёт устроен наоборот, и две
+        комнаты с большой цифрой не должны читаться одной и той же */}
     <button class="field" type="button" id="field" aria-label="Задержитесь здесь, и отсчёт пойдёт быстрее">
-      <p class="count" id="count">—</p>
       <p class="hint" id="hint">не задерживайтесь</p>
+      <p class="count" id="count">—</p>
     </button>
 
     <p class="sr-only">Обратный отсчёт, который ускоряется, пока указатель остаётся на странице.</p>
@@ -46,20 +48,28 @@ import Room from '../../layouts/Room.astro';
     /* красная грамматика: шаг короткий и с акцентом на выходе */
     transition:
       scale 170ms var(--ease-micro),
+      transform 230ms var(--ease-micro),
       color 240ms var(--ease-state);
   }
 
-  /* чем быстрее счёт, тем ближе цвет к чистой охре и тем крупнее знак */
+  /*
+    Чем быстрее счёт, тем ближе цвет к чистой охре, тем крупнее знак и тем
+    сильнее он заваливается вперёд. Наклон — и есть разница между этой комнатой
+    и оксбладом: там отсчёт ждёт, здесь давит.
+  */
   .stage[data-urgency='1'] .count {
     color: color-mix(in oklab, var(--c-red) 82%, var(--ink) 18%);
+    transform: skewX(-1.5deg);
   }
   .stage[data-urgency='2'] .count {
     color: var(--c-red);
     scale: 1.04;
+    transform: skewX(-4deg);
   }
   .stage[data-urgency='3'] .count {
     color: var(--c-red);
-    scale: 1.08;
+    scale: 1.09;
+    transform: skewX(-7.5deg);
   }
 
   .count.is-step {

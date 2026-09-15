@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { ROOMS, roomPath } from '../src/data/rooms.js';
 
 /*
@@ -20,6 +20,22 @@ test.describe('портреты комнат', () => {
     await page.goto('/colophon/');
     await page.waitForTimeout(1200);
     await page.screenshot({ path: 'screenshots/01-колофон.png' });
+  });
+
+  /*
+    Фиолетовый в спокойном виде ничем не отличается от отсчёта в чёрной ветке.
+    Разница появляется, только если задержаться: счёт разгоняется, знак растёт
+    и заваливается вперёд. Кадр снимается именно в этом состоянии.
+  */
+  test('фиолетовый под давлением', async ({ page }) => {
+    await page.goto('/red/violet/');
+    await page.locator('#field').hover();
+
+    await expect
+      .poll(async () => Number(await page.locator('#stage').getAttribute('data-urgency')), { timeout: 25_000 })
+      .toBeGreaterThanOrEqual(2);
+
+    await page.screenshot({ path: 'screenshots/red-violet-под-давлением.png' });
   });
 
   /*
