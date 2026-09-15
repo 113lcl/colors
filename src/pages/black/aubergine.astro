@@ -1,10 +1,32 @@
 ---
 import Room from '../../layouts/Room.astro';
+
+/*
+  Текст, который каждый раз слегка переставлен. Важно, что он остаётся почти
+  читаемым: перестановка должна ощущаться как сбой памяти, а не как шифр.
+  Переставляются только соседние слова внутри строки и изредка сами строки.
+*/
+const LINES = [
+  'Вы точно оставляли это здесь.',
+  'Порядок был другой, но разница мелкая.',
+  'Никто ничего не трогал.',
+  'Прочитайте ещё раз, если кажется.',
+];
 ---
 
 <Room branch="black" slug="aubergine">
   <div class="stage">
-    <p class="holding">Текст каждый раз слегка переставлен местами.</p>
+    <div class="sheet" id="sheet">
+      {
+        LINES.map((line, i) => (
+          <p class="line" data-line={i} style={`--i:${i}`}>
+            {line}
+          </p>
+        ))
+      }
+    </div>
+
+    <p class="footnote" id="footnote">здесь всё как было</p>
   </div>
 </Room>
 
@@ -12,16 +34,151 @@ import Room from '../../layouts/Room.astro';
   .stage {
     flex: 1;
     display: grid;
+    grid-template-rows: 1fr auto;
     place-items: center;
-    padding: 0 var(--pad-x);
+    padding: 13vh var(--pad-x) 15vh;
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
+
+  .sheet {
+    align-self: center;
+    max-width: 34ch;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(14px, 2.4vw, 26px);
+  }
+
+  .line {
+    margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
+    font-size: clamp(17px, 2.5vw, 26px);
+    line-height: 1.6;
+    color: color-mix(in oklab, var(--c-black) 48%, var(--ink) 52%);
+    opacity: 0;
+    transform: translateY(6px);
+    /*
+      Чёрная грамматика: строки приходят не по порядку и не через равные
+      промежутки. Задержки заданы вручную и специально не выстраиваются в ряд.
+    */
+    animation: line-in 620ms var(--ease-state) forwards;
+    animation-delay: calc(240ms + var(--i) * 190ms + var(--jitter, 0ms));
+    --rest-offset: 0s;
+  }
+
+  .line[data-line='1'] {
+    --jitter: 310ms;
+  }
+  .line[data-line='2'] {
+    --jitter: -90ms;
+  }
+  .line[data-line='3'] {
+    --jitter: 460ms;
+  }
+
+  @keyframes line-in {
+    to {
+      opacity: 0.88;
+      transform: translateY(0);
+    }
+  }
+
+  /* слово, которое переехало, держится чуть иначе остальных */
+  .line :global(.moved) {
+    display: inline-block;
+    animation: moved-settle 7.5s var(--ease-amb) infinite;
+    --rest-offset: -3.75s;
+  }
+
+  @keyframes moved-settle {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    47% {
+      translate: 0 0;
+    }
+    49% {
+      translate: 0.5px -1px;
+    }
+    52% {
+      translate: 0 0;
+    }
+  }
+
+  .footnote {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 11px;
+    letter-spacing: 0.3em;
     color: var(--ink-dim);
-    opacity: 0.5;
+    opacity: 0;
+    animation: footnote-in 2.4s var(--ease-state) 2.9s forwards;
+    --rest-offset: 0s;
+  }
+
+  @keyframes footnote-in {
+    to {
+      opacity: 0.32;
+    }
   }
 </style>
+
+<script>
+  /*
+    Перестановка считается при загрузке, поэтому текст каждый раз немного другой.
+    Сила сбоя ограничена: меняются местами только соседи и не больше двух пар
+    на строку — иначе фраза рассыпается и перестаёт тревожить, просто ломается.
+  */
+  const lines = [...document.querySelectorAll('.line')];
+
+  const swapNeighbours = (words, count) => {
+    const out = [...words];
+    const spots = [];
+    for (let i = 0; i < out.length - 1; i++) spots.push(i);
+
+    for (let n = 0; n < count && spots.length; n++) {
+      const pick = Math.floor(Math.random() * spots.length);
+      const i = spots[pick];
+      spots.splice(Math.max(pick - 1, 0), 2); // не трогаем ту же пару дважды
+      [out[i], out[i + 1]] = [out[i + 1], out[i]];
+      out[i] = { text: out[i].text, moved: true };
+      out[i + 1] = { text: out[i + 1].text, moved: true };
+    }
+    return out;
+  };
+
+  for (const line of lines) {
+    const words = line.textContent.trim().split(/\s+/).map((text) => ({ text, moved: false }));
+    if (words.length < 3) continue;
+
+    const swaps = Math.random() > 0.45 ? 2 : 1;
+    const shuffled = swapNeighbours(words, swaps);
+
+    // доступный вариант — исходный, неперепутанный: скринридер не должен
+    // получать сбой как содержание
+    const sr = document.createElement('span');
+    sr.className = 'sr-only';
+    sr.textContent = line.textContent.trim();
+
+    line.textContent = '';
+    line.appendChild(sr);
+
+    shuffled.forEach((w, i) => {
+      const span = document.createElement('span');
+      span.textContent = w.text;
+      span.setAttribute('aria-hidden', 'true');
+      if (w.moved) {
+        span.className = 'moved';
+        span.style.animationDelay = `-${(Math.random() * 7).toFixed(2)}s`;
+      }
+      line.appendChild(span);
+      if (i < shuffled.length - 1) line.appendChild(document.createTextNode(' '));
+    });
+  }
+
+  // изредка меняются местами и сами строки — но никогда первая
+  if (Math.random() > 0.55 && lines.length > 2) {
+    const sheet = document.getElementById('sheet');
+    const i = 1 + Math.floor(Math.random() * (lines.length - 2));
+    sheet.insertBefore(lines[i + 1], lines[i]);
+  }
+</script>

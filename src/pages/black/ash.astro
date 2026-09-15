@@ -1,27 +1,144 @@
 ---
 import Room from '../../layouts/Room.astro';
+
+/*
+  Комната почти пуста. Всё движение — по краям, и только пока на него не смотрят:
+  когда курсор подходит ближе, пятно замирает. Проверить это нельзя — в том и
+  дело. «Куда смотрят» приближается положением курсора; точнее и не нужно.
+*/
+const EDGE = [
+  { x: 4, y: 22, w: 54, h: 3, rot: -8, dur: 13, o: 0.3 },
+  { x: 91, y: 37, w: 42, h: 2, rot: 12, dur: 17, o: 0.26 },
+  { x: 7, y: 74, w: 66, h: 2.5, rot: 6, dur: 11, o: 0.28 },
+  { x: 88, y: 81, w: 38, h: 3, rot: -14, dur: 19, o: 0.22 },
+  { x: 48, y: 5, w: 30, h: 2, rot: 3, dur: 15, o: 0.2 },
+  { x: 62, y: 95, w: 46, h: 2.5, rot: -5, dur: 21, o: 0.24 },
+  { x: 24, y: 92, w: 22, h: 2, rot: 9, dur: 9, o: 0.18 },
+  { x: 96, y: 14, w: 26, h: 2, rot: -3, dur: 23, o: 0.16 },
+];
 ---
 
 <Room branch="black" slug="ash">
-  <div class="stage">
-    <p class="holding">Почти пустая комната; что-то шевелится на периферии.</p>
+  <div class="stage" id="stage">
+    {
+      EDGE.map((e, i) => (
+        <span
+          class="smudge"
+          data-smudge
+          style={`
+            left:${e.x}%; top:${e.y}%;
+            width:${e.w}px; height:${e.h}px;
+            --rot:${e.rot}deg; --dur:${e.dur}s;
+            --o:${e.o}; --delay:-${(i * 2.7).toFixed(1)}s;
+            --rest-offset:-${e.dur / 2}s;
+          `}
+          aria-hidden="true"
+        />
+      ))
+    }
+
+    <p class="middle">Здесь ничего.</p>
+
+    <p class="sr-only">Почти пустая комната; по краям экрана что-то едва заметно движется.</p>
   </div>
 </Room>
 
 <style>
   .stage {
     flex: 1;
+    position: relative;
     display: grid;
     place-items: center;
-    padding: 0 var(--pad-x);
+    overflow: hidden;
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
+
+  .smudge {
+    position: absolute;
+    border-radius: 999px;
+    background: var(--c-black);
+    opacity: var(--o);
+    filter: blur(1.4px);
+    transform: rotate(var(--rot));
+    will-change: transform;
+    animation: creep var(--dur) var(--ease-amb) var(--delay) infinite;
+  }
+
+  @keyframes creep {
+    0%,
+    100% {
+      translate: 0 0;
+      scale: 1 1;
+    }
+    50% {
+      translate: 14px -9px;
+      scale: 1.22 1;
+    }
+  }
+
+  /* курсор подошёл — движение прекращается ровно до того, как его успевают поймать */
+  .smudge.is-watched {
+    animation-play-state: paused;
+  }
+
+  .middle {
+    margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
+    font-size: clamp(16px, 2.2vw, 22px);
+    letter-spacing: 0.12em;
     color: var(--ink-dim);
-    opacity: 0.5;
+    opacity: 0.3;
+    animation: middle-fade 26s var(--ease-amb) infinite;
+    --rest-offset: -13s;
+  }
+
+  @keyframes middle-fade {
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.18;
+    }
   }
 </style>
+
+<script>
+  import { onFrame, hasPointer, reduced } from '../../scripts/techniques/_util.js';
+
+  const smudges = [...document.querySelectorAll('[data-smudge]')];
+  const WATCH_RADIUS = 300;
+
+  if (hasPointer() && !reduced()) {
+    let px = -9999;
+    let py = -9999;
+
+    addEventListener(
+      'pointermove',
+      (e) => {
+        px = e.clientX;
+        py = e.clientY;
+      },
+      { passive: true }
+    );
+
+    // центры кэшируются: пятна смещаются только трансформом, для расстояния
+    // хватает опорной позиции — и в кадре не остаётся ни одного чтения геометрии
+    let centres = [];
+    const measure = () => {
+      centres = smudges.map((s) => {
+        const r = s.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      });
+    };
+    measure();
+    addEventListener('resize', measure, { passive: true });
+
+    onFrame(() => {
+      for (let i = 0; i < smudges.length; i++) {
+        const c = centres[i];
+        const watched = Math.hypot(px - c.x, py - c.y) < WATCH_RADIUS;
+        smudges[i].classList.toggle('is-watched', watched);
+      }
+    });
+  }
+</script>

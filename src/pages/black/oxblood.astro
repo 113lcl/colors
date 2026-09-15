@@ -3,25 +3,187 @@ import Room from '../../layouts/Room.astro';
 ---
 
 <Room branch="black" slug="oxblood">
-  <div class="stage">
-    <p class="holding">Обратный отсчёт без объяснений и обрывающаяся тишина.</p>
+  <div class="stage" id="stage">
+    <p class="count" id="count" aria-hidden="true">—</p>
+    <p class="caption" id="caption"></p>
+
+    <p class="sr-only">Обратный отсчёт без указания на то, к чему он ведёт. По достижении нуля наступает тишина, и счёт начинается заново.</p>
   </div>
 </Room>
 
 <style>
   .stage {
     flex: 1;
+    position: relative;
     display: grid;
     place-items: center;
-    padding: 0 var(--pad-x);
+    align-content: center;
+    gap: clamp(20px, 3vw, 34px);
+    overflow: hidden;
+    transition: opacity 120ms linear;
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
+
+  /* момент нуля: всё разом перестаёт быть — ни звука, ни движения, ни счёта */
+  .stage[data-void] {
+    opacity: 0;
+  }
+
+  .count {
+    margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
+    font-weight: 500;
+    font-size: clamp(62px, 17vw, 190px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: color-mix(in oklab, var(--c-black) 62%, var(--ink) 38%);
+    font-variant-numeric: tabular-nums;
+    /*
+      Чёрная грамматика: шаг счёта ровный, а вот сам знак каждый раз встаёт
+      чуть иначе — это заметно не сразу и именно поэтому неуютно.
+    */
+    animation: tick-unsettle 4.3s var(--ease-amb) infinite;
+    --rest-offset: -2.15s;
+  }
+
+  @keyframes tick-unsettle {
+    0%,
+    100% {
+      translate: 0 0;
+      scale: 1;
+    }
+    38% {
+      translate: 0 0;
+      scale: 1;
+    }
+    40% {
+      translate: 1px -2px;
+      scale: 1.004;
+    }
+    43% {
+      translate: 0 0;
+      scale: 1;
+    }
+    77% {
+      translate: -2px 1px;
+    }
+    79% {
+      translate: 0 0;
+    }
+  }
+
+  .count.is-stepped {
+    animation:
+      tick-unsettle 4.3s var(--ease-amb) infinite,
+      step 260ms var(--ease-micro);
+  }
+
+  @keyframes step {
+    0% {
+      opacity: 0.35;
+      scale: 0.985;
+    }
+    100% {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+
+  .caption {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 11.5px;
+    letter-spacing: 0.34em;
     color: var(--ink-dim);
-    opacity: 0.5;
+    opacity: 0;
+    transition: opacity 900ms var(--ease-state);
+    min-height: 1.2em;
+  }
+
+  .caption.is-in {
+    opacity: 0.34;
   }
 </style>
+
+<script>
+  import { reduced } from '../../scripts/techniques/_util.js';
+
+  const stage = document.getElementById('stage');
+  const count = document.getElementById('count');
+  const caption = document.getElementById('caption');
+
+  /*
+    Ни единиц, ни цели: сказать, к чему идёт отсчёт, значит его обезвредить.
+    Подписи меняются и ни разу не объясняют — они лишь подтверждают, что счёт
+    действительно про что-то.
+  */
+  const CAPTIONS = ['осталось', 'ещё столько', 'почти', 'уже скоро'];
+
+  let value = 40 + Math.floor(Math.random() * 50);
+  let timer = 0;
+
+  const render = () => {
+    count.textContent = String(value);
+    count.classList.remove('is-stepped');
+    void count.offsetWidth; // перезапустить ступеньку
+    count.classList.add('is-stepped');
+  };
+
+  const setCaption = (text) => {
+    caption.classList.remove('is-in');
+    setTimeout(() => {
+      caption.textContent = text;
+      caption.classList.add('is-in');
+    }, 420);
+  };
+
+  /*
+    Ноль — это не взрыв, а обрыв: экран пустеет и полторы секунды не происходит
+    ничего вообще. Звука нет намеренно: браузер всё равно не даст его без
+    действия пользователя, а внезапная тишина работает не хуже.
+  */
+  const emptiness = () => {
+    clearInterval(timer);
+    stage.dataset.void = '';
+    caption.classList.remove('is-in');
+
+    setTimeout(() => {
+      value = 40 + Math.floor(Math.random() * 50);
+      render();
+      stage.removeAttribute('data-void');
+      setCaption(CAPTIONS[Math.floor(Math.random() * CAPTIONS.length)]);
+      start();
+    }, 1600);
+  };
+
+  const start = () => {
+    clearInterval(timer);
+    timer = setInterval(() => {
+      value -= 1;
+      if (value <= 0) {
+        count.textContent = '0';
+        emptiness();
+        return;
+      }
+      render();
+      // подпись меняется не по расписанию, а когда придётся
+      if (Math.random() > 0.88) setCaption(CAPTIONS[Math.floor(Math.random() * CAPTIONS.length)]);
+    }, 1000);
+  };
+
+  render();
+  setCaption(CAPTIONS[0]);
+
+  if (!reduced()) start();
+  else {
+    // при reduced-motion счёт стоит: обрыв и мигание были бы здесь неуместны
+    caption.textContent = 'отсчёт остановлен';
+    caption.classList.add('is-in');
+  }
+
+  // счёт не идёт, пока комнату не видно: вернуться и увидеть прежнее число —
+  // страшнее, чем увидеть, что без вас всё это время что-то шло
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) clearInterval(timer);
+    else if (!reduced() && !stage.hasAttribute('data-void')) start();
+  });
+</script>

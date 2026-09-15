@@ -38,6 +38,7 @@ export function cursorSpot(el, options = {}) {
   const pos = { ...target };
   const ghostPos = { ...target };
   let active = false;
+  let frozen = false;
 
   const onPointer = (e) => {
     target.x = e.clientX;
@@ -50,6 +51,7 @@ export function cursorSpot(el, options = {}) {
   };
 
   const stop = onFrame(() => {
+    if (frozen) return; // заминка: пятно стоит, рука продолжает двигаться
     pos.x = lerp(pos.x, target.x, ease);
     pos.y = lerp(pos.y, target.y, ease);
     el.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0) translate(-50%, -50%) scale(${scale})`;
@@ -66,6 +68,13 @@ export function cursorSpot(el, options = {}) {
   window.addEventListener('pointermove', onPointer, { passive: true });
 
   return {
+    /* Замереть, не теряя связи с курсором: нужно чёрной ветке для микро-заминок. */
+    freeze() {
+      frozen = true;
+    },
+    thaw() {
+      frozen = false;
+    },
     destroy() {
       stop();
       window.removeEventListener('pointermove', onPointer);

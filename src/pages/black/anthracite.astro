@@ -3,25 +3,127 @@ import Room from '../../layouts/Room.astro';
 ---
 
 <Room branch="black" slug="anthracite">
-  <div class="stage">
-    <p class="holding">Курсор отстаёт от мыши и на миг раздваивается.</p>
+  <div class="stage" id="stage">
+    <span class="trail" id="trail" aria-hidden="true"></span>
+    <span class="trail trail--ghost" id="ghost" aria-hidden="true"></span>
+
+    <p class="line" id="line">Курсор здесь немного ваш.</p>
+
+    <p class="sr-only">Комната, в которой указатель отстаёт от движения мыши и иногда раздваивается.</p>
   </div>
 </Room>
 
 <style>
   .stage {
     flex: 1;
+    position: relative;
     display: grid;
     place-items: center;
-    padding: 0 var(--pad-x);
+    overflow: hidden;
   }
-  .holding {
-    max-width: 30ch;
-    text-align: center;
+
+  /*
+    Настоящий курсор остаётся на месте — прятать его значило бы сломать
+    управление. Неуют делает второй, запаздывающий след: видно, что указателей
+    два и один из них не слушается.
+  */
+  .trail {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--c-black);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 500ms var(--ease-state);
+    will-change: transform;
+  }
+
+  .trail--ghost {
+    width: 25px;
+    height: 25px;
+    background: none;
+    border: 1px solid var(--c-black);
+    opacity: 0;
+  }
+
+  .line {
+    margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(15px, 2vw, 19px);
-    line-height: 1.7;
-    color: var(--ink-dim);
-    opacity: 0.5;
+    font-size: clamp(19px, 3.2vw, 34px);
+    letter-spacing: 0.02em;
+    color: color-mix(in oklab, var(--c-black) 56%, var(--ink) 44%);
+    text-align: center;
+    max-width: 18ch;
+    position: relative;
+    z-index: 1;
+    /* фраза не стоит ровно: её микросдвиги не совпадают с ритмом ничего вокруг */
+    animation: line-unsettle 19s var(--ease-amb) infinite;
+    --rest-offset: -9.5s;
+  }
+
+  @keyframes line-unsettle {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    23% {
+      translate: -1px 1px;
+    }
+    24% {
+      translate: 2px -1px;
+    }
+    61% {
+      translate: 0 -2px;
+    }
+    62% {
+      translate: -2px 0;
+    }
   }
 </style>
+
+<script>
+  import { cursorSpot } from '../../scripts/techniques/cursor-spot.js';
+  import { reduced, hasPointer } from '../../scripts/techniques/_util.js';
+
+  const trail = document.getElementById('trail');
+  const ghost = document.getElementById('ghost');
+
+  if (hasPointer() && !reduced()) {
+    const spot = cursorSpot(trail, {
+      ease: 0.19, // след идёт заметно позади руки, но всё ещё за ней
+      ghost,
+      ghostEase: 0.045, // двойник отстаёт настолько, что кажется отдельным
+    });
+
+    /*
+      Раз в несколько секунд след замирает на две-три десятых — ровно настолько,
+      чтобы это прочиталось как чужая заминка, а не как лаг загрузки. Момент
+      выбирается случайно: предсказуемая осечка перестаёт быть неуютной.
+    */
+    const hitch = () => {
+      spot.freeze();
+      setTimeout(() => spot.thaw(), 170 + Math.random() * 200);
+      setTimeout(hitch, 3400 + Math.random() * 5200);
+    };
+    setTimeout(hitch, 4200);
+
+    addEventListener(
+      'pointermove',
+      () => {
+        trail.style.opacity = '0.62';
+        ghost.style.opacity = '0.4';
+      },
+      { once: true, passive: true }
+    );
+  } else if (reduced()) {
+    // точка покоя: два указателя стоят рядом, но не совпадают — неуют остаётся,
+    // движения нет
+    trail.style.opacity = '0.5';
+    ghost.style.opacity = '0.32';
+    trail.style.transform = 'translate3d(50vw, 50vh, 0) translate(-50%, -50%)';
+    ghost.style.transform = 'translate3d(calc(50vw + 22px), calc(50vh + 9px), 0) translate(-50%, -50%)';
+  }
+</script>
