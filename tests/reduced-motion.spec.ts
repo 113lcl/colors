@@ -16,14 +16,33 @@ test.describe('prefers-reduced-motion', () => {
       const running = await page.evaluate(() =>
         document
           .getAnimations()
+          // переходы здесь ни при чём: reduced-motion не запрещает их, а
+          // укорачивает до миллисекунды, и застать такой переход «идущим» —
+          // вопрос случая, а не ошибка. Их длительность проверяется отдельно
+          .filter((a) => a instanceof CSSAnimation)
           .filter((a) => a.playState === 'running')
           // тушевая пелена — единственное исключение: её короткий уход
           // при reduced-motion остаётся, иначе она застынет поверх страницы
           .filter((a) => !((a as CSSAnimation).animationName ?? '').includes('ink-'))
-          .map((a) => (a as CSSAnimation).animationName ?? a.constructor.name)
+          .map((a) => (a as CSSAnimation).animationName)
       );
 
       expect(running, `${path}: ${running.join(', ')}`).toEqual([]);
+
+      // ни один переход не должен длиться заметное время
+      const slow = await page.evaluate(() => {
+        const out: string[] = [];
+        for (const el of document.querySelectorAll('*')) {
+          const cs = getComputedStyle(el);
+          for (const d of cs.transitionDuration.split(', ')) {
+            const ms = d.endsWith('ms') ? parseFloat(d) : parseFloat(d) * 1000;
+            if (ms > 20) out.push(`${el.tagName.toLowerCase()}.${(el.className || '—').toString().slice(0, 30)} → ${d}`);
+          }
+        }
+        return [...new Set(out)];
+      });
+
+      expect(slow, `${path}: ${slow.join(', ')}`).toEqual([]);
     }
   });
 
@@ -52,6 +71,86 @@ test.describe('prefers-reduced-motion', () => {
     const v = await page.locator('#count').textContent();
     await page.waitForTimeout(2500);
     expect(await page.locator('#count').textContent()).toBe(v);
+  });
+
+  test('приходящие анимации замирают в конце, а не в начале', async ({ page }) => {
+    /*
+      Ловушка, в которую сайт уже попадал: глобальное правило останавливает
+      анимацию и подставляет --rest-offset. Для зацикленных это середина цикла,
+      а для одноразовых «появлений» нулевое смещение означает нулевую фазу —
+      элемент замирает прозрачным навсегда. У выходов из комнаты это значило,
+      что без движения из комнаты не выйти.
+    */
+    const stuck: string[] = [];
+
+    for (const path of ALL_PATHS) {
+      await page.goto(path);
+      await page.waitForTimeout(500);
+
+      const bad = await page.evaluate(() => {
+        const out: string[] = [];
+        for (const el of document.querySelectorAll('*')) {
+          const cs = getComputedStyle(el);
+          if (cs.animationName === 'none') continue;
+          if (!cs.animationFillMode.split(', ').includes('forwards')) continue;
+          if (cs.animationIterationCount.split(', ').some((c) => c === 'infinite')) continue;
+          if (Number(cs.opacity) > 0.02) continue;
+          // намеренно скрытые элементы в счёт не идут
+          if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+          out.push(`${el.tagName.toLowerCase()}.${(el.className || '—').toString().slice(0, 34)} → ${cs.animationName}`);
+        }
+        return out;
+      });
+
+      if (bad.length) stuck.push(`${path}: ${[...new Set(bad)].join('; ')}`);
+    }
+
+    expect(stuck, stuck.join('\n')).toEqual([]);
+  });
+
+  test('выходы из комнаты видны и кликабельны без движения', async ({ page }) => {
+    for (const path of ALL_PATHS.filter((p) => p !== '/' && p !== '/colophon/')) {
+      await page.goto(path);
+      await page.waitForTimeout(400);
+
+      const exits = page.locator('.exits .exit');
+      const count = await exits.count();
+      expect(count, path).toBeGreaterThan(0);
+
+      for (let i = 0; i < count; i++) {
+        await expect(exits.nth(i), `${path}: выход ${i}`).toBeVisible();
+        const opacity = await exits.nth(i).evaluate((el) => {
+          let o = 1;
+          let node: Element | null = el;
+          while (node) {
+            o *= Number(getComputedStyle(node).opacity);
+            node = node.parentElement;
+          }
+          return o;
+        });
+        expect(opacity, `${path}: выход ${i} прозрачен`).toBeGreaterThan(0.2);
+      }
+    }
+  });
+
+  test('кадры состояния покоя', async ({ page }) => {
+    /*
+      Бриф просит не гасить анимацию, а переводить её в осмысленную точку покоя.
+      Проверить это по-настоящему можно только глазами, поэтому кадры снимаются
+      и лежат рядом с обычными: видно, что комната замерла в середине вдоха.
+    */
+    const shots: Array<[string, string]> = [
+      ['/', 'покой-центр'],
+      ['/white/frost/', 'покой-морозный'],
+      ['/blue/dusk/', 'покой-сумеречный'],
+      ['/red/orange/', 'покой-оранжевый'],
+    ];
+
+    for (const [path, name] of shots) {
+      await page.goto(path);
+      await page.waitForTimeout(1200);
+      await page.screenshot({ path: `screenshots/${name}.png` });
+    }
   });
 
   test('комнаты не пустеют: главное в кадре остаётся видимым', async ({ page }) => {

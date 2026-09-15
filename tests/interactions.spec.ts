@@ -259,8 +259,17 @@ test.describe('приёмы комнат', () => {
 
   test('переход между комнатами поднимает тушевую пелену', async ({ page }) => {
     await page.goto('/white/cloud/');
+    await page.waitForTimeout(4200); // выходы должны встать, иначе цель едет
 
+    /*
+      Переход отложенный: клик перехватывается, пелена заливает экран и только
+      потом происходит навигация. Поэтому ждать нужно именно смены адреса —
+      waitForLoadState вернулся бы сразу на текущей странице, и следующий
+      evaluate попал бы ровно в момент, когда контекст сносит навигацией.
+    */
+    const before = page.url();
     await page.locator('.exits .exit').first().click();
+    await page.waitForURL((url) => url.href !== before, { timeout: 10_000 });
     await page.waitForLoadState('load');
 
     // пелена должна была подняться до отрисовки новой комнаты

@@ -111,7 +111,9 @@ const branchSize = branchRooms(branch).length;
     color: var(--ink-dim);
     opacity: 0;
     animation: name-settle 2.6s var(--ease-state) 0.7s forwards;
-    --rest-offset: 0s;
+    /* приходящая анимация должна замереть в КОНЦЕ, а не в начале: при нулевом
+       смещении подпись осталась бы невидимой навсегда */
+    --rest-offset: -3.4s;
   }
 
   @keyframes name-settle {

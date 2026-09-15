@@ -254,7 +254,9 @@ a {
   pointer-events: none;
   opacity: 0;
   animation: exits-settle 2.4s var(--ease-state, ease) 1.6s forwards;
-  --rest-offset: 0s;
+  /* выходы — это навигация: при нулевом смещении они замирали бы прозрачными,
+     и без движения из комнаты было бы не выйти */
+  --rest-offset: -4.2s;
 }
 
 @keyframes exits-settle {
